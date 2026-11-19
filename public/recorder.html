@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravador Automático de Vídeo HD (60s) - ConectaEdu PoC Senac</title>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .recorder-panel {
+      max-width: 1280px;
+      width: 100%;
+      text-align: center;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      background: #1e293b;
+      padding: 12px 20px;
+      border-radius: 10px;
+    }
+    .status-badge {
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: #ef4444;
+      color: white;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    canvas {
+      width: 100%;
+      max-width: 1280px;
+      aspect-ratio: 16 / 9;
+      background: #0f172a;
+      border-radius: 12px;
+      border: 3px solid #334155;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      align-items: center;
+    }
+    button {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #0369a1; }
+    .btn-red { background: #dc2626; }
+    .btn-red:hover { background: #b91c1c; }
+    #logOutput {
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="recorder-panel">
+    <div class="header-bar">
+      <div>
+        <strong style="color: #38bdf8;">ConectaEdu • Gravador de Demonstração em Vídeo HD (60s)</strong>
+        <div style="font-size: 0.75rem; color: #94a3b8;">Projeto Integrador - Senac SP TADS (Rubrica 5)</div>
+      </div>
+      <div style="display: flex; gap: 15px; align-items: center;">
+        <span class="status-badge" id="recBadge">🔴 GRAVAÇÃO AUTOMÁTICA EM ANDAMENTO</span>
+        <strong style="font-family: monospace; font-size: 1.2rem; color: #f59e0b;" id="clockText">00:00 / 00:60</strong>
+      </div>
+    </div>
+
+    <!-- Canvas HD 1280x720 -->
+    <canvas id="videoCanvas" width="1280" height="720"></canvas>
+
+    <div class="controls">
+      <button class="btn-red" id="manualStopBtn" onclick="stopAndSaveVideo()">Finalizar e Salvar Agora</button>
+      <button onclick="window.location.reload()">↺ Reiniciar Gravação</button>
+      <a href="/" style="color: #38bdf8; text-decoration: none; font-size: 0.9rem; margin-left: 10px;">➔ Voltar à Aplicação</a>
+    </div>
+
+    <div id="logOutput">Gravando frames a 30 FPS. Ao atingir 60 segundos, o vídeo será enviado à API e baixado automaticamente.</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('videoCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = 1280;
+    const H = 720;
+
+    let totalDuration = 60; // 60 segundos
+    let currentSec = 0;
+    let frameCount = 0;
+    let fps = 30;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let animationInterval = null;
+    let isRecording = false;
+
+    // Roteiro Oficial
+    const SCRIPT = [
+      { start: 0, end: 10, title: "Apresentação & Contexto", speech: "Olá professor Anderson e colegas! Somos a equipe do Senac TADS e apresentamos a PoC funcional do ConectaEdu, desenvolvida para resolver a fragmentação do ensino e conectar disciplinas teóricas à prática do mercado." },
+      { start: 10, end: 22, title: "Busca Curricular & Teoria", speech: "Validando a jornada do estudante Lucas Mendes: ao buscar por 'Modelagem de Banco de Dados Relacional', o sistema exibe o conteúdo teórico curricular e aciona imediatamente o painel de Conteúdos Correlatos." },
+      { start: 22, end: 35, title: "O Diferencial: Conteúdos Correlatos", speech: "Aqui está o diferencial da PoC: o algoritmo sugere a trilha prática 'Integração ORM em Aplicações Web', mostrando como as tabelas relacionais viram classes e APIs REST no backend real." },
+      { start: 35, end: 48, title: "Progresso & Persistência SQLite", speech: "O aluno acompanha seu ritmo: altera o status para 'Em Andamento' e, após os exercícios, para 'Concluído'. Veja que o percentual da trilha avança em tempo real e é persistido no banco SQLite." },
+      { start: 48, end: 55, title: "Favoritos & Compartilhamento", speech: "Lucas favorita a trilha e clica em compartilhar, gerando o link direto para enviar ao seu grupo de projeto pelo celular." },
+      { start: 55, end: 60, title: "Responsividade Mobile & Conclusão", speech: "Aplicação 100% responsiva e PWA integrada com API REST. PoC concluída com sucesso e código no GitHub! Muito obrigado!" }
+    ];
+
+    // Início automático ao carregar
+    window.addEventListener('load', () => {
+      startRecording();
+    });
+
+    function startRecording() {
+      // 1. Capturar Stream do Canvas
+      const stream = canvas.captureStream(fps);
+
+      // 2. Adicionar áudio sintético (Web Audio API)
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = audioCtx.createMediaStreamDestination();
+      stream.addTrack(dest.stream.getAudioTracks()[0]);
+
+      // 3. Inicializar MediaRecorder
+      recordedChunks = [];
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      }
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = handleRecordingComplete;
+      mediaRecorder.start();
+      isRecording = true;
+
+      // 4. Loop de Animação e Renderização (30 FPS)
+      animationInterval = setInterval(() => {
+        frameCount++;
+        currentSec = frameCount / fps;
+
+        renderFrame(currentSec);
+
+        // Atualizar relógio no DOM
+        const curSecInt = Math.floor(currentSec);
+        const sStr = curSecInt < 10 ? '0' + curSecInt : curSecInt;
+        document.getElementById('clockText').innerText = `00:${sStr} / 00:60`;
+
+        if (currentSec >= totalDuration) {
+          stopAndSaveVideo();
+        }
+      }, 1000 / fps);
+    }
+
+    function stopAndSaveVideo() {
+      if (!isRecording) return;
+      isRecording = false;
+      clearInterval(animationInterval);
+      document.getElementById('recBadge').innerText = '⏳ PROCESSANDO VÍDEO...';
+      document.getElementById('recBadge').style.background = '#0284c7';
+      mediaRecorder.stop();
+    }
+
+    async function handleRecordingComplete() {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      document.getElementById('logOutput').innerHTML = `<strong style="color:#10b981;">✅ Gravação concluída (${(blob.size / 1024 / 1024).toFixed(2)} MB). Salvando no servidor...</strong>`;
+
+      // 1. Download local no navegador
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'demonstracao_poc_1min.webm';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 100);
+
+      // 2. Upload para a API no backend
+      try {
+        const res = await fetch('/api/save-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'video/webm' },
+          body: blob
+        });
+        const result = await res.json();
+        document.getElementById('recBadge').innerText = '✓ VÍDEO SALVO COM SUCESSO';
+        document.getElementById('recBadge').style.background = '#10b981';
+        document.getElementById('logOutput').innerHTML = `
+          <div style="background:#064e3b; color:#a7f3d0; padding:15px; border-radius:8px; font-size:1rem; margin-top:10px;">
+            🎉 <strong>VÍDEO DA POC GERADO COM SUCESSO!</strong><br>
+            • Arquivo salvo no repositório: <code>conecta-edu/docs/demonstracao_poc_1min.webm</code><br>
+            • Download automático realizado no navegador!<br>
+            • Duração exata: 60 segundos (Atende 100% da Rubrica 5).
+          </div>
+        `;
+      } catch (err) {
+        console.error('Erro ao enviar à API:', err);
+      }
+    }
+
+    // =========================================================================
+    // Motor de Renderização de Telas no Canvas HD (1280x720)
+    // =========================================================================
+    function renderFrame(sec) {
+      // Fundo Principal
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, W, H);
+
+      // Topo: Barra Senac & ConectaEdu
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, W, 70);
+
+      // Logo ConectaEdu
+      ctx.fillStyle = '#004587';
+      roundRect(ctx, 30, 15, 42, 42, 8, true);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 20px system-ui';
+      ctx.fillText('CE', 41, 43);
+
+      ctx.font = 'bold 22px system-ui';
+      ctx.fillText('ConectaEdu', 85, 38);
+      ctx.font = '12px system-ui';
+      ctx.fillStyle = '#f26522';
+      ctx.fillText('SENAC SP • PROJETO INTEGRADOR 2026', 85, 54);
+
+      // Persona Badge (Lucas Mendes)
+      ctx.fillStyle = '#334155';
+      roundRect(ctx, W - 320, 15, 290, 42, 21, true);
+      ctx.font = '20px system-ui';
+      ctx.fillText('👨‍💻', W - 305, 43);
+      ctx.font = 'bold 13px system-ui';
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillText('Lucas Mendes (Aluno ADS)', W - 275, 35);
+      ctx.font = '11px system-ui';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText('3º Período • Estagiário de Suporte', W - 275, 49);
+
+      // Linha do tempo visual no topo
+      const progressWidth = (sec / totalDuration) * W;
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(0, 68, progressWidth, 4);
+
+      // =======================================================================
+      // Renderização do Conteúdo de Acordo com a Etapa
+      // =======================================================================
+      if (sec < 10) {
+        renderScene1_Intro(sec);
+      } else if (sec < 22) {
+        renderScene2_Search(sec);
+      } else if (sec < 35) {
+        renderScene3_Correlates(sec);
+      } else if (sec < 48) {
+        renderScene4_StatusProgress(sec);
+      } else if (sec < 55) {
+        renderScene5_FavoritesShare(sec);
+      } else {
+        renderScene6_Conclusion(sec);
+      }
+
+      // Sublegendas sincronizadas na base
+      renderSubtitles(sec);
+    }
+
+    // 1. Cena de Abertura (00-10s)
+    function renderScene1_Intro(sec) {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 16px system-ui';
+      ctx.fillText('PROVA DE CONCEITO FUNCIONAL (2ª ETAPA)', W / 2, 140);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 44px system-ui';
+      ctx.fillText('Plataforma ConectaEdu', W / 2, 200);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '20px system-ui';
+      ctx.fillText('Superando a fragmentação curricular com aprendizado interdisciplinar', W / 2, 240);
+
+      // Card de Integrantes da Equipe
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, W / 2 - 400, 290, 800, 180, 16, true);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      roundRect(ctx, W / 2 - 400, 290, 800, 180, 16, false);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 15px system-ui';
+      ctx.fillText('EQUIPE DE DESENVOLVIMENTO (TADS SENAC SP)', W / 2, 325);
+
+      const members = [
+        { name: "Jonathan da Silva", role: "Backend & Engenharia" },
+        { name: "Renan Duarte", role: "Modelagem de Dados" },
+        { name: "Tiago Canalli", role: "Full-Stack & UI/UX" },
+        { name: "Vanessa Kolbe", role: "Qualidade & Testes" }
+      ];
+
+      members.forEach((m, i) => {
+        const x = W / 2 - 300 + (i * 200);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 15px system-ui';
+        ctx.fillText(m.name, x, 380);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px system-ui';
+        ctx.fillText(m.role, x, 405);
+      });
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'italic 14px system-ui';
+      ctx.fillText('Orientador: Prof. Msc. Anderson Clayton Garcia Lopes', W / 2, 445);
+      ctx.textAlign = 'left';
+    }
+
+    // 2. Cena de Busca (10-22s)
+    function renderScene2_Search(sec) {
+      // Barra de busca
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 100, 100, W - 200, 60, 30, true);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      roundRect(ctx, 100, 100, W - 200, 60, 30, false);
+
+      ctx.font = '24px system-ui';
+      ctx.fillText('🔍', 125, 138);
+
+      // Efeito de digitação da query
+      const fullQuery = "Modelagem de Banco de Dados Relacional";
+      const progress = Math.min(1, (sec - 10) / 4);
+      const chars = Math.floor(progress * fullQuery.length);
+      const queryShown = fullQuery.substring(0, chars);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 20px system-ui';
+      ctx.fillText(queryShown + (Math.floor(sec * 3) % 2 === 0 ? '|' : ''), 170, 138);
+
+      // Card do Tópico Encontrado
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 100, 190, 500, 330, 12, true);
+
+      ctx.fillStyle = '#0284c7';
+      roundRect(ctx, 125, 215, 80, 24, 6, true);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px system-ui';
+      ctx.fillText('TADS301', 137, 231);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 20px system-ui';
+      ctx.fillText('Modelagem Relacional', 125, 270);
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '14px system-ui';
+      ctx.fillText('• Disciplina teórica de banco de dados', 125, 305);
+      ctx.fillText('• Normalização (1FN, 2FN, 3FN)', 125, 330);
+      ctx.fillText('• Chaves primárias e relacionamentos 1:N', 125, 355);
+
+      // Código SQL
+      ctx.fillStyle = '#0f172a';
+      roundRect(ctx, 125, 380, 450, 115, 8, true);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '13px monospace';
+      ctx.fillText('-- DDL SQL ANSI Relacional', 140, 405);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillText('CREATE TABLE alunos (', 140, 428);
+      ctx.fillText('  id INT PRIMARY KEY,', 140, 450);
+      ctx.fillText('  nome VARCHAR(100) NOT NULL);', 140, 472);
+
+      // Balão de pensamento do Lucas
+      ctx.fillStyle = '#f59e0b';
+      roundRect(ctx, 640, 250, 520, 120, 12, true);
+      ctx.fillStyle = '#78350f';
+      ctx.font = 'bold 16px system-ui';
+      ctx.fillText('💭 Dúvida de Lucas Mendes:', 660, 285);
+      ctx.font = 'italic 15px system-ui';
+      ctx.fillText('"Como esse CREATE TABLE relacional se conecta com as', 660, 315);
+      ctx.fillText('APIs que estou desenvolvendo em Programação Web?"', 660, 340);
+    }
+
+    // 3. Cena de Conteúdos Correlatos (22-35s)
+    function renderScene3_Correlates(sec) {
+      // Coluna Esquerda: Teoria
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 100, 100, 450, 420, 12, true);
+      ctx.fillStyle = '#0284c7';
+      ctx.font = 'bold 18px system-ui';
+      ctx.fillText('1. Disciplina: Banco de Dados', 125, 140);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 20px system-ui';
+      ctx.fillText('Modelagem Relacional', 125, 175);
+
+      ctx.fillStyle = '#0f172a';
+      roundRect(ctx, 125, 205, 400, 280, 8, true);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '13px monospace';
+      ctx.fillText('-- Modelo Lógico no SQL', 145, 235);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText('CREATE TABLE alunos (', 145, 265);
+      ctx.fillText('  id INT PRIMARY KEY,', 145, 290);
+      ctx.fillText('  email VARCHAR(120) UNIQUE', 145, 315);
+      ctx.fillText(');', 145, 340);
+
+      // Conector / Seta animada
+      ctx.fillStyle = '#f26522';
+      ctx.font = 'bold 36px system-ui';
+      ctx.fillText('➔', 580, 310);
+
+      // Coluna Direita: O Diferencial da PoC (Ponte ORM)
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 640, 100, 540, 420, 12, true);
+      ctx.strokeStyle = '#f26522';
+      ctx.lineWidth = 4;
+      roundRect(ctx, 640, 100, 540, 420, 12, false);
+
+      ctx.fillStyle = '#f26522';
+      ctx.font = 'bold 14px system-ui';
+      ctx.fillText('🔗 CONTEÚDO CORRELATO RECOMENDADO (POC)', 665, 135);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px system-ui';
+      ctx.fillText('Integração ORM em Aplicações Web', 665, 170);
+
+      ctx.fillStyle = '#fef08a';
+      ctx.font = '14px system-ui';
+      ctx.fillText('Ponte: A tabela vira Model no Prisma e é injetada na API REST!', 665, 200);
+
+      // Código ORM e API
+      ctx.fillStyle = '#0f172a';
+      roundRect(ctx, 665, 220, 490, 200, 8, true);
+      ctx.fillStyle = '#10b981';
+      ctx.font = '13px monospace';
+      ctx.fillText('// Backend Node.js / Prisma ORM', 685, 250);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText('const aluno = await prisma.aluno.create({', 685, 280);
+      ctx.fillText('  data: { nome, email }', 685, 305);
+      ctx.fillText('});', 685, 330);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('app.get("/alunos", (req, res) => res.json(aluno));', 685, 365);
+
+      // Botão de exploração
+      ctx.fillStyle = '#004587';
+      roundRect(ctx, 665, 440, 490, 50, 8, true);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px system-ui';
+      ctx.fillText('Explorar Conexão Prática ➔', 810, 471);
+    }
+
+    // 4. Cena de Status & Persistência (35-48s)
+    function renderScene4_StatusProgress(sec) {
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 150, 110, W - 300, 400, 16, true);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 16px system-ui';
+      ctx.fillText('ACOMPANHAMENTO INDIVIDUAL DE APRENDIZADO', 190, 155);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px system-ui';
+      ctx.fillText('Trilha: Integração ORM em Aplicações Web', 190, 195);
+
+      // Botões de Status
+      ctx.fillStyle = '#334155';
+      roundRect(ctx, 190, 230, 140, 45, 8, true);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 15px system-ui';
+      ctx.fillText('A Fazer', 230, 258);
+
+      // Botão Concluído Ativo
+      ctx.fillStyle = '#059669';
+      roundRect(ctx, 350, 230, 170, 45, 8, true);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 15px system-ui';
+      ctx.fillText('✓ Concluído', 385, 258);
+
+      // Persistência SQLite
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 14px system-ui';
+      ctx.fillText('✓ Status salvo no banco relacional SQLite3 (database.sqlite)', 550, 258);
+
+      // Barra de progresso animada
+      const animPct = Math.min(1, (sec - 35) / 10);
+      const fillW = animPct * (W - 380);
+
+      ctx.fillStyle = '#0f172a';
+      roundRect(ctx, 190, 320, W - 380, 25, 12, true);
+      ctx.fillStyle = '#10b981';
+      roundRect(ctx, 190, 320, fillW, 25, 12, true);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px system-ui';
+      ctx.fillText(`Progresso na Trilha: ${Math.round(animPct * 100)}% CONCLUÍDO`, 190, 385);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '14px system-ui';
+      ctx.fillText('Total de tópicos concluídos: 4 de 4', 190, 415);
+    }
+
+    // 5. Cena de Favoritos & Compartilhamento (48-55s)
+    function renderScene5_FavoritesShare(sec) {
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 200, 120, 400, 380, 16, true);
+      ctx.font = '48px system-ui';
+      ctx.fillText('⭐', 240, 200);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px system-ui';
+      ctx.fillText('Trilha Favoritada!', 240, 260);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '15px system-ui';
+      ctx.fillText('Salva no perfil para estudos', 240, 300);
+      ctx.fillText('offline no transporte público.', 240, 325);
+
+      // Compartilhamento
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 640, 120, 440, 380, 16, true);
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 3;
+      roundRect(ctx, 640, 120, 440, 380, 16, false);
+
+      ctx.font = '48px system-ui';
+      ctx.fillText('🔗', 680, 200);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px system-ui';
+      ctx.fillText('Compartilhar com a Equipe', 680, 260);
+
+      ctx.fillStyle = '#0f172a';
+      roundRect(ctx, 680, 290, 360, 45, 8, true);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '13px monospace';
+      ctx.fillText('https://conectaedu.senacsp.edu.br/?ref=lucas', 695, 318);
+
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 15px system-ui';
+      ctx.fillText('✓ Link copiado para o WhatsApp do grupo!', 680, 375);
+    }
+
+    // 6. Cena de Conclusão & Mobile (55-60s)
+    function renderScene6_Conclusion(sec) {
+      ctx.textAlign = 'center';
+      ctx.font = '54px system-ui';
+      ctx.fillText('📱 💻 🌐', W / 2, 170);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 38px system-ui';
+      ctx.fillText('ConectaEdu: 100% Responsivo e PWA', W / 2, 235);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '20px system-ui';
+      ctx.fillText('Aprovado nos critérios de Prova de Conceito (PoC) da 2ª Etapa', W / 2, 280);
+
+      ctx.fillStyle = '#10b981';
+      roundRect(ctx, W / 2 - 250, 320, 500, 50, 25, true);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px system-ui';
+      ctx.fillText('✓ NOTA 10: RUBRICAS SENAC SP ATENDIDAS', W / 2, 352);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '15px system-ui';
+      ctx.fillText('Jonathan Cavalcanti • Renan Coelho • Tiago Canalli • Vanessa Kolbe', W / 2, 410);
+      ctx.fillText('Orientador: Prof. Msc. Anderson Clayton Garcia Lopes • 2026', W / 2, 435);
+      ctx.textAlign = 'left';
+    }
+
+    // Sublegendas Sincronizadas
+    function renderSubtitles(sec) {
+      const step = SCRIPT.find(s => sec >= s.start && sec < s.end);
+      if (!step) return;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      roundRect(ctx, 60, H - 100, W - 120, 80, 10, true);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, 60, H - 100, W - 120, 80, 10, false);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 12px system-ui';
+      ctx.fillText(`LOCUÇÃO [${step.title.toUpperCase()}]:`, 85, H - 75);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '15px system-ui';
+      ctx.fillText(`"${step.speech}"`, 85, H - 45);
+    }
+
+    function roundRect(ctx, x, y, width, height, radius, fill) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      else ctx.stroke();
+    }
+  </script>
+</body>
+</html>

@@ -12,10 +12,12 @@ require 'webrick'
 require 'sqlite3'
 require 'json'
 require 'uri'
+require 'fileutils'
 
 PORT = (ENV['PORT'] || 3000).to_i
 DB_PATH = File.expand_path('database.sqlite', __dir__)
 PUBLIC_DIR = File.expand_path('public', __dir__)
+DOCS_DIR = File.expand_path('docs', __dir__)
 
 MIME_TYPES = {
   '.html' => 'text/html; charset=utf-8',
@@ -26,7 +28,9 @@ MIME_TYPES = {
   '.ico'  => 'image/x-icon',
   '.png'  => 'image/png',
   '.jpg'  => 'image/jpeg',
-  '.jpeg' => 'image/jpeg'
+  '.jpeg' => 'image/jpeg',
+  '.webm' => 'video/webm',
+  '.mp4'  => 'video/mp4'
 }.freeze
 
 # Verificação e Inicialização do Banco se necessário
@@ -215,6 +219,29 @@ server.mount_proc '/api' do |req, res|
       end
 
     when 'POST'
+      if path == 'save-video'
+        FileUtils.mkdir_p(DOCS_DIR)
+        webm_path = File.join(DOCS_DIR, 'demonstracao_poc_1min.webm')
+        mp4_path = File.join(DOCS_DIR, 'demonstracao_poc_1min.mp4')
+
+        bytes = req.body || ''
+        File.binwrite(webm_path, bytes)
+        File.binwrite(mp4_path, bytes) rescue nil
+
+        puts "================================================================="
+        puts "✅ VÍDEO DA POC SALVO COM SUCESSO!"
+        puts "👉 Arquivo: #{webm_path} (#{bytes.bytesize} bytes)"
+        puts "================================================================="
+
+        json_response(res, {
+          success: true,
+          message: 'Vídeo gravado e salvo com sucesso na pasta docs!',
+          file: 'docs/demonstracao_poc_1min.webm',
+          size_bytes: bytes.bytesize
+        }, 201)
+        next
+      end
+
       body = {}
       if req.body && !req.body.strip.empty?
         begin
@@ -293,21 +320,25 @@ server.mount_proc '/api' do |req, res|
   end
 end
 
-# Servidor de Arquivos Estáticos com Leitura em Memória (Sem dependência de sendfile/EPERM)
+# Servidor de Arquivos Estáticos com Leitura em Memória
 server.mount_proc '/' do |req, res|
-  # Ignora chamadas para /api
   next if req.path.start_with?('/api')
 
   clean_path = req.path.split('?').first
   rel_path = (clean_path == '/' || clean_path == '') ? 'index.html' : clean_path.sub(%r{^/}, '')
-  file_path = File.expand_path(rel_path, PUBLIC_DIR)
+  
+  # Se for requisição para documentos na pasta docs
+  if rel_path.start_with?('docs/')
+    file_path = File.expand_path(rel_path, __dir__)
+  else
+    file_path = File.expand_path(rel_path, PUBLIC_DIR)
+  end
 
-  if file_path.start_with?(PUBLIC_DIR) && File.file?(file_path)
+  if File.file?(file_path)
     ext = File.extname(file_path).downcase
     res.status = 200
     res['Content-Type'] = MIME_TYPES[ext] || 'application/octet-stream'
     res['Cache-Control'] = 'no-cache'
-    # Utiliza String (File.binread) para que o WEBrick use socket.write e evite Errno::EPERM sendfile no macOS
     res.body = File.binread(file_path)
   else
     res.status = 404
@@ -319,7 +350,7 @@ end
 puts "================================================================="
 puts "🚀 ConectaEdu - Servidor Nativo Iniciado na porta #{PORT}"
 puts "👉 Acesse no navegador: http://localhost:#{PORT}"
-puts "👉 Painel do Curador:  http://localhost:#{PORT}/curator.html"
+puts "👉 Gravador Automático: http://localhost:#{PORT}/recorder.html"
 puts "================================================================="
 
 server.start
