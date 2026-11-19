@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gravador Automático de Vídeo .MP4 (60s) • Layout Fiel • ConectaEdu</title>
+  <title>Gravador Automático de Vídeo .MP4 (60s) • Com Áudio Real • ConectaEdu</title>
   <style>
     body {
       background: #0b0f19;
@@ -106,16 +106,19 @@
 </head>
 <body>
 
+  <!-- Elemento de áudio com a locução brasileira gravada (59s) -->
+  <audio id="narrationAudio" src="/audio/locucao_poc_60s.m4a" preload="auto"></audio>
+
   <div class="recorder-panel">
     <div class="header-bar">
-      <div>
-        <strong style="color: #38bdf8;">ConectaEdu • Gravador de Vídeo MP4 (Exatamente 60 Segundos)</strong>
-        <div style="font-size: 0.75rem; color: #94a3b8;">
-          Layout 100% Fiel à Aplicação • Módulo do Aluno (Lucas) + Módulo da Curadora (Prof.ª Carla) + Mobile PWA
+      <div style="text-align: left;">
+        <strong style="color: #38bdf8; font-size: 1.05rem;">ConectaEdu • Gravador Oficial da PoC (60 Segundos)</strong>
+        <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">
+          Senac SP • TADS 2026 • Áudio Real Sintetizado (pt-BR) • Legendas Estilo Cinema • Layout Fiel
         </div>
       </div>
       <div style="display: flex; gap: 14px; align-items: center;">
-        <span class="status-badge running" id="recBadge">🔴 GRAVANDO FRAMES...</span>
+        <span class="status-badge" id="recBadge" style="background: #0284c7;">PRONTO PARA GRAVAR</span>
         <strong style="font-family: monospace; font-size: 1.25rem; color: #f59e0b;" id="clockText">00:00 / 00:60</strong>
       </div>
     </div>
@@ -125,22 +128,29 @@
       <div class="progress-bar-fill" id="frameProgressFill"></div>
     </div>
 
-    <!-- Canvas HD 1280x720 com fundo idêntico à aplicação (#f8fafc) -->
+    <!-- Canvas HD 1280x720 -->
     <canvas id="videoCanvas" width="1280" height="720"></canvas>
 
     <div class="controls">
-      <button class="btn-green" id="btnStartNow" onclick="startRecordingNow()" style="display: none;">
-        ▶ Iniciar Nova Gravação (1800 Frames / 60s)
+      <button class="btn-green" id="btnStartNow" onclick="startRecordingNow()" style="padding: 12px 28px; font-size: 1.05rem;">
+        ▶ INICIAR GRAVAÇÃO DE 60s (COM ÁUDIO & MP4)
       </button>
-      <button class="btn-red" id="manualStopBtn" onclick="forceStopAndSave()">
-        Finalizar e Salvar Vídeo Agora (.mp4)
+      <button class="btn-red" id="manualStopBtn" onclick="forceStopAndSave()" style="display: none;">
+        ⏹ Finalizar e Salvar Vídeo Agora (.mp4)
       </button>
       <button onclick="window.location.reload()">↺ Reiniciar</button>
-      <a href="/" style="color: #38bdf8; text-decoration: none; font-size: 0.88rem; margin-left: 10px;">➔ Ir para o ConectaEdu</a>
+      <a href="/" style="color: #38bdf8; text-decoration: none; font-size: 0.88rem; margin-left: 10px;">➔ Abrir ConectaEdu</a>
+      <a href="/curator.html" style="color: #f26522; text-decoration: none; font-size: 0.88rem; margin-left: 10px;">➔ Abrir Painel Curador</a>
+    </div>
+
+    <!-- Player de Prévia do Áudio -->
+    <div style="margin-top: 12px; background: #1e293b; padding: 8px 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;">
+      <span style="font-size: 0.84rem; color: #cbd5e1; font-weight: 600;">🔊 Prévia da Locução em Português (59 segundos):</span>
+      <audio controls style="height: 32px;" src="/audio/locucao_poc_60s.m4a"></audio>
     </div>
 
     <div id="logOutput">
-      Renderizando frame <span id="frameCountText">1</span> de 1800 (<span id="pctText">0%</span> concluído). Por favor, aguarde os 60 segundos completos...
+      Clique em <strong>INICIAR GRAVAÇÃO</strong> para reproduzir a locução e gravar os 1800 frames a 30 FPS.
     </div>
   </div>
 
@@ -160,60 +170,67 @@
     let isRecording = false;
     let chosenMimeType = 'video/mp4';
     let worker = null;
+    let audioCtx = null;
+    const audioEl = document.getElementById('narrationAudio');
 
-    // Roteiro Oficial Abrangendo TODOS os Módulos (Aluno + Curador + Mobile)
+    // Roteiro Oficial com Títulos Elegantes de Seção e Legendas Centradas
     const TIMELINE = [
       {
         start: 0,
         end: 8,
-        module: "Abertura & Contexto",
+        sectionTitle: "ABERTURA & CONTEXTUALIZAÇÃO DO PROJETO",
+        module: "Visão Geral",
         url: "http://localhost:3000",
-        speech: "Olá professor Anderson e colegas! Apresentamos a PoC funcional do ConectaEdu (Senac TADS), desenvolvida para eliminar o isolamento entre disciplinas teóricas e práticas."
+        speech: "Olá professor Anderson e colegas! Apresentamos a PoC funcional do ConectaEdu da equipe do Senac TADS, feita para eliminar o isolamento entre disciplinas teóricas e práticas."
       },
       {
         start: 8,
         end: 20,
-        module: "Visão do Aluno • Busca & Teoria",
+        sectionTitle: "VISÃO DO ALUNO • BUSCA CURRICULAR & CÓDIGO DDL",
+        module: "Visão do Aluno (Lucas)",
         url: "http://localhost:3000",
-        speech: "Na visão do estudante Lucas Mendes: ao buscar 'Modelagem de Banco de Dados Relacional', o sistema exibe o conteúdo teórico curricular e o código SQL DDL das tabelas."
+        speech: "Na visão do aluno Lucas Mendes: ao buscar Modelagem de Banco de Dados Relacional, ele acessa o conteúdo curricular e o código SQL das tabelas."
       },
       {
         start: 20,
         end: 32,
-        module: "Visão do Aluno • Conteúdos Correlatos",
-        url: "http://localhost:3000",
-        speech: "Aqui o diferencial: o motor interdisciplinar recomenda 'Integração ORM em Aplicações Web', mostrando como as tabelas relacionais viram classes Prisma e endpoints na API Express!"
+        sectionTitle: "VISÃO DO ALUNO • CONTEÚDOS CORRELATOS (ORM & APIS)",
+        module: "Visão do Aluno (Lucas)",
+        url: "http://localhost:3000/topicos/top_orm_web",
+        speech: "O grande diferencial da PoC: o motor interdisciplinar recomenda Integração ORM em Aplicações Web, mostrando como tabelas relacionais viram classes Prisma e endpoints Express!"
       },
       {
         start: 32,
         end: 42,
-        module: "Visão do Aluno • Progresso & SQLite",
-        url: "http://localhost:3000",
-        speech: "Lucas acompanha seu ritmo: marca como 'Concluído', vê a barra de progresso atingir 100% no SQLite, favorita a trilha e compartilha o link com o grupo."
+        sectionTitle: "VISÃO DO ALUNO • PROGRESSO NO SQLITE & FAVORITOS",
+        module: "Visão do Aluno (Lucas)",
+        url: "http://localhost:3000/trilhas/trilha_fullstack_orm",
+        speech: "Lucas marca o tópico como Concluído, a barra avança para cem por cento no SQLite, favorita a trilha e compartilha o link."
       },
       {
         start: 42,
         end: 54,
-        module: "Visão da Curadora / Docente (Prof.ª Carla)",
+        sectionTitle: "VISÃO DA CURADORA • MAPEAMENTO DE PONTES NO GRAFO DOCENTE",
+        module: "Visão Curadora (Prof.ª Carla)",
         url: "http://localhost:3000/curator.html",
-        speech: "Na visão da Curadora Prof.ª Dra. Carla Silveira: ela acessa o painel docente para estruturar novas pontes no grafo e visualizar as conexões ativas entre as matérias."
+        speech: "Na visão da Curadora Professora Doutora Carla Silveira: ela acessa o painel docente para estruturar novas pontes no grafo pedagógico e gerenciar conexões ativas."
       },
       {
         start: 54,
         end: 60,
-        module: "Responsividade Mobile PWA & Conclusão",
+        sectionTitle: "ACESSIBILIDADE MOBILE PWA & CONCLUSÃO DA POC",
+        module: "Mobile PWA",
         url: "http://localhost:3000",
-        speech: "Aplicação 100% responsiva para celulares com cache PWA offline. PoC plenamente comprovada e código no GitHub! Muito obrigado!"
+        speech: "Aplicação cem por cento responsiva para celulares com cache PWA offline. Prova de Conceito plenamente comprovada e código no GitHub! Muito obrigado!"
       }
     ];
 
-    // Detecção rigorosa de formato suportado
     function selectSupportedMime() {
       const candidates = [
-        'video/mp4;codecs=avc1',
+        'video/mp4;codecs=avc1,mp4a.40.2',
         'video/mp4',
-        'video/webm;codecs=h264',
-        'video/webm;codecs=vp9',
+        'video/webm;codecs=h264,opus',
+        'video/webm;codecs=vp9,opus',
         'video/webm'
       ];
       for (const t of candidates) {
@@ -224,22 +241,46 @@
       return 'video/mp4';
     }
 
-    // Inicialização ao carregar
     window.addEventListener('load', () => {
-      startRecordingNow();
+      renderFrame(0);
     });
 
-    function startRecordingNow() {
+    async function startRecordingNow() {
       if (isRecording) return;
       document.getElementById('btnStartNow').style.display = 'none';
       document.getElementById('manualStopBtn').style.display = 'inline-block';
       document.getElementById('recBadge').className = 'status-badge running';
-      document.getElementById('recBadge').innerText = '🔴 GRAVANDO FRAMES (00:00)...';
+      document.getElementById('recBadge').innerText = '🔴 GRAVANDO FRAMES COM ÁUDIO...';
 
       chosenMimeType = selectSupportedMime();
 
-      // Stream puro do canvas
+      // 1. Stream do Canvas de Vídeo
       const stream = canvas.captureStream(fps);
+
+      // 2. Conectar e Iniciar Áudio Real da Locução
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioCtx.createMediaElementSource(audioEl);
+          const dest = audioCtx.createMediaStreamDestination();
+
+          source.connect(audioCtx.destination); // Reproduz no fone/alto-falante
+          source.connect(dest);                 // Envia para o MediaRecorder
+
+          const audioTrack = dest.stream.getAudioTracks()[0];
+          if (audioTrack) {
+            stream.addTrack(audioTrack);
+          }
+        }
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
+
+        audioEl.currentTime = 0;
+        await audioEl.play();
+      } catch (err) {
+        console.warn('Configuração de áudio:', err);
+      }
 
       recordedChunks = [];
       try {
@@ -259,11 +300,11 @@
       };
 
       mediaRecorder.onstop = handleRecordingComplete;
-      mediaRecorder.start(1000); // chunk regular a cada 1s
+      mediaRecorder.start(1000); // flushes regulares
       isRecording = true;
       frameCount = 0;
 
-      // Web Worker Timer (Não sofre throttling caso a aba fique em background)
+      // 3. Web Worker Timer para manter 30 FPS imune a abas em background
       const workerCode = `
         let timer = null;
         self.onmessage = function(e) {
@@ -308,10 +349,11 @@
       if (!isRecording) return;
       isRecording = false;
       if (worker) worker.postMessage('stop');
+      if (audioEl) audioEl.pause();
 
       document.getElementById('recBadge').className = 'status-badge success';
-      document.getElementById('recBadge').innerText = '✓ 1800 FRAMES CONCLUÍDOS!';
-      document.getElementById('logOutput').innerHTML = '<strong style="color: #38bdf8;">Processando e finalizando arquivo .MP4...</strong>';
+      document.getElementById('recBadge').innerText = '✓ 1800 FRAMES + ÁUDIO CONCLUÍDOS!';
+      document.getElementById('logOutput').innerHTML = '<strong style="color: #38bdf8;">Processando arquivo final .MP4 com áudio narrado...</strong>';
       
       mediaRecorder.stop();
     }
@@ -332,7 +374,7 @@
       const sizeMb = (blob.size / 1024 / 1024).toFixed(2);
       const totalSec = (frameCount / fps).toFixed(1);
 
-      // 1. Disparar download direto no navegador em .mp4
+      // 1. Download direto no navegador
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
@@ -342,7 +384,7 @@
       a.click();
       setTimeout(() => document.body.removeChild(a), 100);
 
-      // 2. Upload para a API no backend para salvar em docs/
+      // 2. Upload para a API do backend
       try {
         const res = await fetch('/api/save-video?format=mp4', {
           method: 'POST',
@@ -355,10 +397,10 @@
           <div style="background:#064e3b; color:#a7f3d0; padding:16px; border-radius:8px; font-size:1.05rem; margin-top:10px; line-height: 1.6;">
             🎉 <strong>VÍDEO DE 60 SEGUNDOS GERADO E SALVO COM SUCESSO!</strong><br>
             • Duração exata: <strong>${totalSec} segundos (${frameCount} frames)</strong><br>
-            • Formato: <strong>MPEG-4 (.MP4)</strong> (${sizeMb} MB)<br>
+            • Formato: <strong>MPEG-4 (.MP4) COM ÁUDIO SINTETIZADO</strong> (${sizeMb} MB)<br>
             • Salvo no projeto em: <code>conecta-edu/docs/demonstracao_poc_1min.mp4</code><br>
-            • Arquivo baixado automaticamente para a pasta de Downloads do seu Mac!<br>
-            • Explora 100% dos módulos com layout idêntico à aplicação real!
+            • Arquivo baixado para a pasta de Downloads do seu Mac!<br>
+            • Layout corrigido, textos alinhados e legendas de cinema!
           </div>
         `;
         document.getElementById('manualStopBtn').style.display = 'none';
@@ -369,7 +411,7 @@
     }
 
     // =========================================================================
-    // RENDERIZADOR GRÁFICO HD (1280x720) - LAYOUT FIEL À APLICAÇÃO REAL
+    // RENDERIZADOR GRÁFICO HD (1280x720) - LAYOUT FIEL & LEGENDAS CENTRADAS
     // =========================================================================
     function renderFrame(sec) {
       // Fundo Base Idêntico ao do CSS (--bg-main: #f8fafc)
@@ -378,10 +420,10 @@
 
       const step = TIMELINE.find(s => sec >= s.start && sec < s.end) || TIMELINE[0];
 
-      // Barra de Navegador Superior Simulada
-      renderBrowserBar(step.url, step.module);
+      // 1. Barra de Navegador Chrome no Topo
+      renderBrowserBar(step.url, step.sectionTitle);
 
-      // Renderização do Conteúdo de Acordo com a Etapa
+      // 2. Renderização do Conteúdo de Acordo com a Etapa
       if (sec < 8) {
         renderScene1_Intro(sec);
       } else if (sec < 20) {
@@ -396,43 +438,51 @@
         renderScene6_MobileConclusao(sec);
       }
 
-      // Cursor de Mouse animado
+      // 3. Cursor de Mouse animado
       renderMouseCursor(sec);
 
-      // Sublegendas sincronizadas na base
-      renderSubtitles(step);
+      // 4. Legendas Centradas Estilo Cinema (Discretas, sem caixa de locução feia)
+      renderCinemaSubtitles(step.speech);
 
-      // Barra de Progresso no topo da janela
+      // 5. Linha de Progresso no Topo
       const pct = (sec / totalDuration) * W;
       ctx.fillStyle = '#f26522';
-      ctx.fillRect(0, 36, pct, 3);
+      ctx.fillRect(0, 38, pct, 3);
     }
 
-    // Barra de Navegador Chrome no topo
-    function renderBrowserBar(url, moduleName) {
+    // Barra de Navegador Chrome com Título de Seção em Destaque Acima da Demonstração
+    function renderBrowserBar(url, sectionTitle) {
       ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(0, 0, W, 36);
+      ctx.fillRect(0, 0, W, 38);
 
-      // Bolinhas de controle
+      // Bolinhas de controle macOS
       ctx.fillStyle = '#ef4444';
-      ctx.beginPath(); ctx.arc(16, 18, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(18, 19, 5.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#f59e0b';
-      ctx.beginPath(); ctx.arc(32, 18, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(36, 19, 5.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#10b981';
-      ctx.beginPath(); ctx.arc(48, 18, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(54, 19, 5.5, 0, Math.PI * 2); ctx.fill();
 
       // Campo de URL
-      ctx.fillStyle = '#ffffff';
-      drawBox(ctx, 68, 6, 440, 24, 12, true, '#cbd5e1', 1);
-      ctx.fillStyle = '#64748b';
+      drawBox(ctx, 74, 6, 280, 26, 13, true, '#cbd5e1', 1, '#ffffff');
+      ctx.fillStyle = '#475569';
       ctx.font = '11px -apple-system, system-ui';
-      ctx.fillText('🔒 ' + url, 80, 22);
+      ctx.textAlign = 'left';
+      ctx.fillText('🔒 ' + url, 88, 23);
 
-      // Badge do Módulo
-      drawBox(ctx, W - 320, 6, 300, 24, 12, true, '#004587', 0, '#004587');
+      // TÍTULO DA SEÇÃO EM DESTAQUE (ACIMA DA ÁREA DE DEMONSTRAÇÃO)
+      const titleBoxW = 540;
+      const titleBoxX = W - titleBoxW - 16;
+      drawBox(ctx, titleBoxX, 6, titleBoxW, 26, 13, true, '#004587', 0, '#004587');
+      
+      // Indicador laranja Senac
+      ctx.fillStyle = '#f26522';
+      ctx.beginPath(); ctx.arc(titleBoxX + 16, 19, 4, 0, Math.PI * 2); ctx.fill();
+
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 11px -apple-system, system-ui';
-      ctx.fillText('▶ ' + moduleName, W - 308, 22);
+      ctx.textAlign = 'left';
+      ctx.fillText(sectionTitle, titleBoxX + 28, 23);
     }
 
     // Navbar Real da Aplicação ConectaEdu
@@ -446,6 +496,7 @@
       drawBox(ctx, 24, 47, 40, 40, 8, true, null, 0, '#004587');
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 18px system-ui';
+      ctx.textAlign = 'left';
       ctx.fillText('CE', 33, 73);
 
       // Título ConectaEdu
@@ -526,7 +577,7 @@
       ctx.textAlign = 'left';
     }
 
-    // 2. Módulo Aluno: Busca & Teoria (08-20s) - IDÊNTICO À IMAGEM 2
+    // 2. Módulo Aluno: Busca & Teoria (08-20s) - TEXTO 100% ALINHADO DENTRO DA BARRA
     function renderScene2_AlunoBusca(sec) {
       renderAppNavbar(false);
 
@@ -535,7 +586,7 @@
       ctx.fillRect(0, 95, W, 175);
 
       ctx.textAlign = 'center';
-      // Badge marrom
+      // Badge da PoC
       drawBox(ctx, W / 2 - 140, 110, 280, 24, 12, true, 'rgba(242,101,34,0.4)', 1, 'rgba(242,101,34,0.2)');
       ctx.fillStyle = '#ffedd5';
       ctx.font = 'bold 11px system-ui';
@@ -551,18 +602,27 @@
       ctx.font = '13px system-ui';
       ctx.fillText('Elimine a fragmentação entre disciplinas. Descubra como Banco de Dados, APIs e Mobile se integram em projetos reais.', W / 2, 185);
 
-      // Barra de Busca do Hero
-      drawBox(ctx, W / 2 - 300, 202, 600, 42, 21, true, '#334155', 2, '#1e293b');
+      // BARRA DE BUSCA DO HERO: CORREÇÃO COMPLETA DE ALINHAMENTO
+      const boxW = 660;
+      const boxH = 46;
+      const boxX = (W - boxW) / 2;
+      const boxY = 198;
+
+      drawBox(ctx, boxX, boxY, boxW, boxH, 23, true, '#334155', 2, '#1e293b');
+
+      ctx.textAlign = 'left';
       ctx.font = '16px system-ui';
-      ctx.fillText('🔍', W / 2 - 280, 228);
+      ctx.fillText('🔍', boxX + 18, boxY + 29);
 
       const fullTxt = "Modelagem de Banco de Dados Relacional";
       const p = Math.min(1, (sec - 8) / 3.5);
       const sub = fullTxt.substring(0, Math.floor(p * fullTxt.length));
       ctx.fillStyle = '#ffffff';
-      ctx.font = '14px system-ui';
-      ctx.fillText(sub + (Math.floor(sec * 4) % 2 === 0 ? '|' : ''), W / 2 - 250, 228);
+      ctx.font = '15px system-ui, -apple-system, sans-serif';
+      // Inicia perfeitamente após a lupa (boxX + 50) e tem mais de 280px de sobra à direita
+      ctx.fillText(sub + (Math.floor(sec * 4) % 2 === 0 ? '|' : ''), boxX + 50, boxY + 29);
 
+      ctx.textAlign = 'center';
       ctx.fillStyle = '#94a3b8';
       ctx.font = '11px system-ui';
       ctx.fillText('Sugestões da Jornada: Banco Relacional • Integração ORM • APIs REST', W / 2, 260);
@@ -627,7 +687,6 @@
 
       // Col 3: Conteúdos Correlatos Box
       drawBox(ctx, 876, 320, 380, 310, 10, true, '#bae6fd', 2, '#ffffff');
-      // Barra gradiente superior
       ctx.fillStyle = '#f26522'; ctx.fillRect(876, 320, 380, 4);
 
       ctx.fillStyle = '#004587'; ctx.font = 'bold 14px system-ui'; ctx.fillText('🔗 Conteúdos Correlatos', 895, 348);
@@ -655,7 +714,6 @@
     function renderScene3_AlunoCorrelatos(sec) {
       renderAppNavbar(false);
 
-      // Layout Exibindo a Transposição de SQL para Prisma ORM e Express
       drawBox(ctx, 24, 115, 600, 515, 10, true, '#e2e8f0', 1, '#ffffff');
       ctx.fillStyle = '#004587'; ctx.font = 'bold 14px system-ui'; ctx.fillText('DISCIPLINA: BANCO DE DADOS (TEORIA)', 45, 145);
       ctx.fillStyle = '#0f172a'; ctx.font = 'bold 20px system-ui'; ctx.fillText('Esquema Relacional DDL', 45, 175);
@@ -740,14 +798,14 @@
       ctx.fillText('🔗 Link da Trilha Copiado para o Grupo de Projeto', 180, 512);
     }
 
-    // 5. Módulo Curador / Docente: Prof.ª Carla (42-54s) - IDÊNTICO AO CURATOR.HTML
+    // 5. Módulo Curador / Docente: Prof.ª Carla (42-54s)
     function renderScene5_CuradorCarla(sec) {
       renderAppNavbar(true);
 
       // Header Card da Curadora
       drawBox(ctx, 50, 115, W - 100, 75, 10, true, '#e2e8f0', 1, '#ffffff');
 
-      // Avatar com borda laranja (#f26522)
+      // Avatar com borda laranja
       drawBox(ctx, 70, 128, 50, 50, 25, true, '#f26522', 2, '#f1f5f9');
       ctx.font = '26px system-ui'; ctx.fillText('👩‍🏫', 82, 163);
 
@@ -839,7 +897,7 @@
       ctx.textAlign = 'left';
     }
 
-    // Auxiliares de Desenho Matemático Preciso
+    // Auxiliares de Desenho Matemático Preciso (Uso de roundRect nativo)
     function drawBox(ctx, x, y, w, h, r, fill, strokeColor, strokeWidth, fillColor) {
       if (fillColor) ctx.fillStyle = fillColor;
       if (strokeColor) {
@@ -847,7 +905,6 @@
         ctx.lineWidth = strokeWidth || 1;
       }
       
-      // Uso de roundRect nativo do navegador para eliminar qualquer quebra de curva
       if (typeof ctx.roundRect === 'function') {
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, r);
@@ -856,7 +913,6 @@
         return;
       }
 
-      // Fallback robusto com arcTo
       ctx.beginPath();
       ctx.moveTo(x + r, y);
       ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -879,7 +935,7 @@
     function renderMouseCursor(sec) {
       let mx = 400, my = 300;
       if (sec < 20) {
-        mx = W / 2 - 200 + Math.sin(sec * 2) * 50;
+        mx = W / 2 - 180 + Math.sin(sec * 2) * 50;
         my = 230 + Math.cos(sec * 2) * 5;
       } else if (sec < 32) {
         mx = 1000; my = 565; // Clicando em Explorar Conexão Prática
@@ -902,14 +958,52 @@
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
     }
 
-    function renderSubtitles(step) {
-      drawBox(ctx, 50, H - 75, W - 100, 62, 8, true, '#004587', 1.5, 'rgba(15, 23, 42, 0.95)');
+    // LEGENDAS ESTILO CINEMA/STREAMING (DISCRETAS, SEM CAIXA DE LOCUÇÃO PESADA)
+    function renderCinemaSubtitles(text) {
+      if (!text) return;
+      ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      
+      // Quebra automática de texto para não ultrapassar 960px
+      const maxW = 960;
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = words[0] || '';
 
-      ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 11px system-ui';
-      ctx.fillText(`LOCUÇÃO [${step.module.toUpperCase()}]:`, 70, H - 54);
+      for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const testLine = currentLine + ' ' + word;
+        if (ctx.measureText(testLine).width < maxW) {
+          currentLine = testLine;
+        } else {
+          lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
 
-      ctx.fillStyle = '#ffffff'; ctx.font = '14px system-ui';
-      ctx.fillText(`"${step.speech}"`, 70, H - 28);
+      const lineHeight = 20;
+      const padY = 8;
+      const boxH = (lines.length * lineHeight) + (padY * 2);
+      const boxY = H - boxH - 18;
+      
+      let maxLineWidth = 0;
+      lines.forEach(l => {
+        const w = ctx.measureText(l).width;
+        if (w > maxLineWidth) maxLineWidth = w;
+      });
+      
+      const boxW = Math.min(W - 80, maxLineWidth + 44);
+      const boxX = (W - boxW) / 2;
+
+      // Pílula escura translúcida discreta estilo Netflix / YouTube
+      drawBox(ctx, boxX, boxY, boxW, boxH, 10, true, null, 0, 'rgba(15, 23, 42, 0.92)');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      lines.forEach((line, idx) => {
+        ctx.fillText(line, W / 2, boxY + padY + (idx + 1) * lineHeight - 4);
+      });
+      ctx.textAlign = 'left';
     }
   </script>
 </body>
