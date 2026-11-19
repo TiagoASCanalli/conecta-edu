@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConectaEdu | Gerador e Simulador de Vídeo de 1 Minuto (PoC Senac SP)</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .video-studio-container {
+      max-width: 1100px;
+      margin: 1.5rem auto 3rem;
+      padding: 0 1rem;
+    }
+    .studio-header {
+      background: #0f172a;
+      color: white;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-md);
+    }
+    .timeline-bar-wrapper {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .timer-display {
+      font-family: monospace;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--senac-orange);
+    }
+    .progress-track {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-track-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--senac-blue), var(--senac-orange));
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .stage-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .stage-item.active {
+      color: var(--senac-blue);
+      font-weight: 700;
+    }
+    .teleprompter-card {
+      background: #fffbeb;
+      border: 2px solid #fef08a;
+      border-left: 5px solid var(--senac-orange);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .teleprompter-speaker {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--senac-orange);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+    .teleprompter-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #78350f;
+      line-height: 1.45;
+    }
+    .screen-stage {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 2px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      position: relative;
+      min-height: 520px;
+    }
+    .stage-mock-browser {
+      background: #1e293b;
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .mock-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .mock-url {
+      background: #0f172a;
+      color: #94a3b8;
+      font-family: monospace;
+      font-size: 0.75rem;
+      padding: 0.25rem 1rem;
+      border-radius: 9999px;
+      margin-left: 1rem;
+      flex: 1;
+      max-width: 450px;
+    }
+    .stage-content {
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    .cursor-pointer-mock {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      pointer-events: none;
+      z-index: 1000;
+      transition: all 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+      display: none;
+    }
+    .highlight-glow {
+      box-shadow: 0 0 0 4px #f26522, 0 0 25px rgba(242, 101, 34, 0.5) !important;
+      transform: scale(1.02);
+      transition: all 0.3s ease;
+    }
+    .studio-btn-group {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .btn-record {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s;
+    }
+    .btn-record:hover {
+      background: #b91c1c;
+    }
+    .btn-play {
+      background: var(--senac-blue);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo-brand">
+        <div class="logo-icon">CE</div>
+        <div class="logo-text">
+          <h1>ConectaEdu</h1>
+          <span>ESTÚDIO DE DEMONSTRAÇÃO EM VÍDEO (RUBRICA 5)</span>
+        </div>
+      </a>
+      <div class="nav-actions">
+        <a href="/" class="btn-secondary">Voltar à Aplicação</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="video-studio-container">
+    
+    <!-- Painel de Controle do Estúdio -->
+    <div class="studio-header">
+      <div>
+        <span class="badge-tag" style="margin: 0 0 0.5rem 0;">RUBRICA 5 • SENAC SP</span>
+        <h2 style="font-size: 1.35rem; font-weight: 800;">Gerador & Gravador de Demonstração (60 Segundos)</h2>
+        <p style="font-size: 0.85rem; color: #94a3b8;">
+          Apresentação guiada automática com narração em áudio, simulação de ações na tela e exportação de vídeo.
+        </p>
+      </div>
+
+      <div class="studio-btn-group">
+        <button class="btn-play" id="btnPlayDemo" onclick="togglePlayDemo()">
+          <span id="playIcon">▶</span>
+          <span id="playText">Iniciar Apresentação (60s)</span>
+        </button>
+        <button class="btn-record" id="btnRecordVideo" onclick="startScreenRecording()">
+          <span>🔴</span>
+          <span>Gravar e Baixar Vídeo (.webm/.mp4)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Linha do Tempo (0 a 60s) -->
+    <div class="timeline-bar-wrapper">
+      <div class="timeline-header">
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--senac-blue);">
+          Cronômetro da Demonstração
+        </span>
+        <div class="timer-display" id="timerDisplay">00:00 / 00:60</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-track-fill" id="timelineFill"></div>
+      </div>
+      <div class="stage-indicator">
+        <span class="stage-item" id="stage1">00-10s: Abertura</span>
+        <span class="stage-item" id="stage2">10-22s: Busca & Teoria</span>
+        <span class="stage-item" id="stage3">22-35s: Conteúdos Correlatos</span>
+        <span class="stage-item" id="stage4">35-48s: Status & SQLite</span>
+        <span class="stage-item" id="stage5">48-55s: Favoritos & Share</span>
+        <span class="stage-item" id="stage6">55-60s: Conclusão Mobile</span>
+      </div>
+    </div>
+
+    <!-- Teleprompter com a Fala Sincronizada -->
+    <div class="teleprompter-card">
+      <div class="teleprompter-speaker" id="teleprompterSpeaker">LOCUÇÃO DO VÍDEO (ROTEIRO OFICIAL):</div>
+      <div class="teleprompter-text" id="teleprompterText">
+        Clique em "Iniciar Apresentação" para começar a demonstração automática com áudio e cursor guiado.
+      </div>
+    </div>
+
+    <!-- Palco de Demonstração (Simulador da Tela do Aluno) -->
+    <div class="screen-stage" id="screenStage">
+      <!-- Cursor animado -->
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%23f26522' stroke='%23ffffff' stroke-width='1.5' d='M3 3l7 18 3-7 7-3L3 3z'/></svg>" class="cursor-pointer-mock" id="mockCursor" alt="Cursor">
+
+      <div class="stage-mock-browser">
+        <div class="mock-dot" style="background: #ef4444;"></div>
+        <div class="mock-dot" style="background: #f59e0b;"></div>
+        <div class="mock-dot" style="background: #10b981;"></div>
+        <div class="mock-url">https://conectaedu.senacsp.edu.br/?ref=lucas_mendes</div>
+      </div>
+
+      <div class="stage-content" id="stageView">
+        <!-- Renderização dinâmica dos passos -->
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // =========================================================================
+    // Roteiro Oficial Segundo a Segundo (00:00 a 00:60)
+    // =========================================================================
+    const SCENARIO_STEPS = [
+      {
+        start: 0,
+        end: 10,
+        stageId: 'stage1',
+        title: "1. Abertura e Contextualização do Projeto",
+        speech: "Olá professor Anderson e colegas! Somos a equipe do Senac TADS e apresentamos a PoC funcional do ConectaEdu, desenvolvida para resolver a fragmentação do ensino e conectar disciplinas teóricas à prática do mercado.",
+        action: renderIntroScreen
+      },
+      {
+        start: 10,
+        end: 22,
+        stageId: 'stage2',
+        title: "2. Descoberta & Busca Curricular",
+        speech: "Validando a jornada do estudante Lucas Mendes: ao buscar por 'Modelagem de Banco de Dados Relacional', o sistema exibe o conteúdo teórico curricular e aciona imediatamente o painel de Conteúdos Correlatos.",
+        action: renderSearchStep
+      },
+      {
+        start: 22,
+        end: 35,
+        stageId: 'stage3',
+        title: "3. O Diferencial: Conteúdos Correlatos Interdisciplinares",
+        speech: "Aqui está o diferencial da PoC: o algoritmo sugere a trilha prática 'Integração ORM em Aplicações Web', mostrando como as tabelas relacionais viram classes e APIs REST no backend real.",
+        action: renderCorrelatesStep
+      },
+      {
+        start: 35,
+        end: 48,
+        stageId: 'stage4',
+        title: "4. Acompanhamento de Ritmo & Persistência em SQLite",
+        speech: "O aluno acompanha seu ritmo: altera o status para 'Em Andamento' e, após os exercícios, para 'Concluído'. Veja que o percentual da trilha avança em tempo real e é persistido no banco SQLite.",
+        action: renderStatusProgressStep
+      },
+      {
+        start: 48,
+        end: 55,
+        stageId: 'stage5',
+        title: "5. Favoritos e Compartilhamento com o Grupo",
+        speech: "Lucas favorita a trilha e clica em compartilhar, gerando o link direto para enviar ao seu grupo de projeto pelo celular.",
+        action: renderFavoritesShareStep
+      },
+      {
+        start: 55,
+        end: 60,
+        stageId: 'stage6',
+        title: "6. Encerramento & Validação Full-Stack PWA",
+        speech: "Aplicação 100% responsiva e PWA integrada com API REST. PoC concluída com sucesso e código no GitHub! Muito obrigado!",
+        action: renderConclusionStep
+      }
+    ];
+
+    let currentSeconds = 0;
+    let timerInterval = null;
+    let isPlaying = false;
+    let speechSynth = window.speechSynthesis;
+    let currentUtterance = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', () => {
+      renderIntroScreen();
+    });
+
+    function togglePlayDemo() {
+      if (isPlaying) {
+        stopDemo();
+      } else {
+        startDemo();
+      }
+    }
+
+    function startDemo() {
+      isPlaying = true;
+      currentSeconds = 0;
+      document.getElementById('playIcon').innerText = '⏸';
+      document.getElementById('playText').innerText = 'Pausar Demonstração';
+      document.getElementById('mockCursor').style.display = 'block';
+
+      runTick();
+      timerInterval = setInterval(() => {
+        currentSeconds++;
+        runTick();
+        if (currentSeconds >= 60) {
+          stopDemo();
+        }
+      }, 1000);
+    }
+
+    function stopDemo() {
+      isPlaying = false;
+      clearInterval(timerInterval);
+      document.getElementById('playIcon').innerText = '▶';
+      document.getElementById('playText').innerText = 'Reiniciar Apresentação';
+      if (speechSynth) speechSynth.cancel();
+      document.getElementById('mockCursor').style.display = 'none';
+    }
+
+    function runTick() {
+      // Atualizar relógio
+      const secsStr = currentSeconds < 10 ? `0${currentSeconds}` : `${currentSeconds}`;
+      document.getElementById('timerDisplay').innerText = `00:${secsStr} / 00:60`;
+      
+      const pct = (currentSeconds / 60) * 100;
+      document.getElementById('timelineFill').style.width = `${pct}%`;
+
+      // Encontrar passo ativo
+      const step = SCENARIO_STEPS.find(s => currentSeconds >= s.start && currentSeconds < s.end);
+      if (step) {
+        // Atualizar indicadores de etapa
+        document.querySelectorAll('.stage-item').forEach(el => el.classList.remove('active'));
+        const activeStageEl = document.getElementById(step.stageId);
+        if (activeStageEl) activeStageEl.classList.add('active');
+
+        // Atualizar teleprompter
+        document.getElementById('teleprompterText').innerText = `"${step.speech}"`;
+        document.getElementById('teleprompterSpeaker').innerText = `LOCUÇÃO (ETAPA: ${step.title}):`;
+
+        // Se estiver no primeiro segundo da etapa, falar e disparar ação
+        if (currentSeconds === step.start) {
+          speakText(step.speech);
+          step.action();
+        }
+      }
+    }
+
+    // Síntese de Voz (Web Speech API em Português do Brasil)
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) return;
+      speechSynth.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'pt-BR';
+      utter.rate = 1.05; // ritmo dinâmico para caber perfeitamente no tempo
+      speechSynth.speak(utter);
+    }
+
+    // Animação de Cursor
+    function moveCursorTo(selector, offsetX = 10, offsetY = 10) {
+      const cursor = document.getElementById('mockCursor');
+      const target = document.querySelector(selector);
+      if (!target || !cursor) return;
+
+      const rect = target.getBoundingClientRect();
+      const parentRect = document.getElementById('screenStage').getBoundingClientRect();
+
+      cursor.style.left = `${(rect.left - parentRect.left) + offsetX}px`;
+      cursor.style.top = `${(rect.top - parentRect.top) + offsetY}px`;
+    }
+
+    // =========================================================================
+    // Telas dos Passos da Demonstração
+    // =========================================================================
+
+    function renderIntroScreen() {
+      const container = document.getElementById('stageView');
+      container.innerHTML = `
+        <div style="text-align: center; padding: 3rem 1rem;">
+          <div style="display: inline-block; background: #e0f2fe; color: #0284c7; padding: 0.35rem 1rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1rem;">
+            SENAC SP • TADS 2026 • PROJETO INTEGRADOR
+          </div>
+          <h1 style="font-size: 2.2rem; font-weight: 900; color: #004587; margin-bottom: 0.5rem;">
+            ConectaEdu
+          </h1>
+          <p style="font-size: 1.15rem; color: #64748b; max-width: 650px; margin: 0 auto 1.5rem;">
+            Plataforma de Aprendizado Dinâmico e Interdisciplinar
+          </p>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; max-width: 600px; margin: 0 auto; display: flex; justify-content: space-around;">
+            <div><strong>Jonathan da Silva</strong><br><span style="font-size:0.75rem; color:#64748b;">Backend</span></div>
+            <div><strong>Renan Duarte</strong><br><span style="font-size:0.75rem; color:#64748b;">Banco de Dados</span></div>
+            <div><strong>Tiago Canalli</strong><br><span style="font-size:0.75rem; color:#64748b;">Full-Stack & UI</span></div>
+            <div><strong>Vanessa Kolbe</strong><br><span style="font-size:0.75rem; color:#64748b;">Testes & Qualidade</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSearchStep() {
+      const container = document.getElementById('stageView');
+      container.innerHTML = `
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px;">
+          <div style="font-size: 1.2rem;">👨‍💻</div>
+          <div><strong>Lucas Mendes</strong> (Aluno ADS 3º Período) — <em>"Preciso entender como banco relacional conecta com as APIs da faculdade!"</em></div>
+        </div>
+        <div class="search-box-wrapper" style="margin-bottom: 1.5rem;">
+          <input type="text" id="demoSearchInput" class="search-input highlight-glow" value="Modelagem de Banco de Dados Relacional" readonly>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+            <span class="badge-disc" style="background:#0284c7;">TADS301</span>
+            <h3 style="margin-top:0.5rem; color:#0f172a;">Modelagem de Banco de Dados Relacional</h3>
+            <p style="font-size:0.85rem; color:#475569; margin-top:0.5rem;">
+              Estudo formal de tabelas, chaves primárias e relacionamentos (1:N, N:N).
+            </p>
+          </div>
+          <div style="background: #e0f2fe; border: 2px dashed #0284c7; border-radius: 10px; padding: 1rem; text-align: center;">
+            <span style="font-size: 0.8rem; font-weight:700; color:#0369a1;">MOTOR DE RECOMENDAÇÃO ACIONADO</span>
+            <p style="font-size: 0.9rem; font-weight: 700; margin-top: 0.5rem;">1 Conteúdo Correlato Interdisciplinar Mapeado!</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCorrelatesStep() {
+      const container = document.getElementById('stageView');
+      container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem;">
+            <span class="badge-tag" style="margin:0 0 0.5rem 0;">DISCIPLINA ORIGEM</span>
+            <h3 style="color:#004587;">Modelagem de Banco de Dados</h3>
+            <pre style="background:#0f172a; color:#cbd5e1; padding:0.75rem; border-radius:6px; font-size:0.75rem; margin-top:0.5rem;"><code>CREATE TABLE alunos (
+  id INT PRIMARY KEY,
+  nome VARCHAR(100)
+);</code></pre>
+          </div>
+          <div class="highlight-glow" style="background: #fffbeb; border: 2px solid #f59e0b; border-radius: 10px; padding: 1.25rem;" id="bridgeTargetCard">
+            <span class="badge-tag" style="background:#fef3c7; color:#b45309; border-color:#f59e0b; margin:0 0 0.5rem 0;">PONTE INTERDISCIPLINAR (POc)</span>
+            <h3 style="color:#b45309;">Integração ORM em Aplicações Web</h3>
+            <p style="font-size:0.82rem; color:#78350f; margin:0.5rem 0;">
+              <strong>Ponte Prática:</strong> A tabela SQL vira uma classe no Prisma/Node.js para ser consumida pela API Express!
+            </p>
+            <button class="btn-primary" style="width:100%; font-size:0.85rem;" id="btnExplorarDemo">
+              Explorar Conexão Prática ➔
+            </button>
+          </div>
+        </div>
+      `;
+      setTimeout(() => moveCursorTo('#btnExplorarDemo', 50, 15), 500);
+    }
+
+    function renderStatusProgressStep() {
+      const container = document.getElementById('stageView');
+      container.innerHTML = `
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="color: #004587;">Tópico: Integração ORM em Aplicações Web</h3>
+            <span style="font-size: 0.8rem; color: #059669; font-weight: 700;">✓ Sincronizado no SQLite</span>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; align-items: center; background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <span style="font-weight: 700; font-size: 0.85rem;">Status do Aluno:</span>
+            <button class="btn-status todo">A Fazer</button>
+            <button class="btn-status doing" id="demoStatusDoing">Em Andamento</button>
+            <button class="btn-status done active highlight-glow" id="demoStatusDone">✓ Concluído</button>
+          </div>
+
+          <div style="background: #f1f5f9; padding: 1.25rem; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">
+              <span>Progresso na Trilha Full-Stack ORM:</span>
+              <span style="color: #059669;" id="demoProgressPercent">100% CONCLUÍDO</span>
+            </div>
+            <div class="progress-track" style="height: 12px;">
+              <div class="progress-track-fill" style="width: 100%; background: #059669;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      setTimeout(() => moveCursorTo('#demoStatusDone', 30, 10), 400);
+    }
+
+    function renderFavoritesShareStep() {
+      const container = document.getElementById('stageView');
+      container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: center;">
+          <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <h4>Trilha: Integração ORM</h4>
+              <button style="font-size: 1.6rem; background: none; border: none; cursor: pointer;">⭐</button>
+            </div>
+            <p style="font-size: 0.82rem; color: #64748b; margin-top: 0.5rem;">Salvo nos favoritos do estudante Lucas Mendes.</p>
+          </div>
+
+          <div class="highlight-glow" style="background: white; border: 2px solid #004587; border-radius: 12px; padding: 1.5rem;" id="shareBoxDemo">
+            <h4 style="color: #004587; margin-bottom: 0.5rem;">🔗 Compartilhar com o Grupo de Trabalho</h4>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" class="search-input" value="https://conectaedu.senacsp.edu.br/?ref=lucas" style="background:#f8fafc; color:#0f172a; padding:0.4rem 0.75rem; font-size:0.8rem;" readonly>
+              <button class="btn-primary" style="white-space: nowrap; font-size:0.8rem;">Copiar Link</button>
+            </div>
+            <p style="font-size: 0.78rem; color: #059669; font-weight: 700; margin-top: 0.5rem;">✓ Link enviado para o WhatsApp do grupo!</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderConclusionStep() {
+      const container = document.getElementById('stageView');
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">📱💻</div>
+          <h2 style="color: #004587; font-size: 1.8rem; font-weight: 900;">100% Responsivo e PWA</h2>
+          <p style="color: #475569; max-width: 600px; margin: 0.5rem auto 1.5rem; font-size: 1rem;">
+            A Prova de Conceito ConectaEdu comprovou a quebra do isolamento disciplinar, proporcionando aprendizado interdisciplinar e alta retenção acadêmica.
+          </p>
+          <div style="display: inline-block; background: #d1fae5; color: #065f46; font-weight: 800; padding: 0.6rem 1.5rem; border-radius: 9999px; font-size: 0.95rem;">
+            ✓ PoC Concluída • 10/10 nas Rubricas do Senac SP
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // Gravação Nativa de Tela (Gera o arquivo de vídeo MP4 / WebM)
+    // =========================================================================
+    async function startScreenRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { frameRate: 30, displaySurface: 'browser' },
+          audio: true
+        });
+
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'poc-conectaedu-senac-demonstracao-1min.webm';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          }, 100);
+          showToast('Vídeo gravado e baixado com sucesso! 🎉');
+        };
+
+        mediaRecorder.start();
+        showToast('Gravando! A apresentação começará agora...');
+        startDemo();
+
+        // Parar automaticamente aos 60s
+        setTimeout(() => {
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            stream.getTracks().forEach(track => track.stop());
+          }
+        }, 61000);
+
+      } catch (err) {
+        console.error('Erro na gravação:', err);
+        showToast('Para gravar, selecione a aba do navegador na janela de compartilhamento.', 'error');
+      }
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      if (type === 'error') toast.style.borderLeftColor = '#ef4444';
+      toast.innerText = msg;
+      container.appendChild(toast);
+      setTimeout(() => { toast.remove(); }, 3500);
+    }
+  </script>
+</body>
+</html>
