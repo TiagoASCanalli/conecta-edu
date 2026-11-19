@@ -17,6 +17,18 @@ PORT = (ENV['PORT'] || 3000).to_i
 DB_PATH = File.expand_path('database.sqlite', __dir__)
 PUBLIC_DIR = File.expand_path('public', __dir__)
 
+MIME_TYPES = {
+  '.html' => 'text/html; charset=utf-8',
+  '.css'  => 'text/css; charset=utf-8',
+  '.js'   => 'application/javascript; charset=utf-8',
+  '.json' => 'application/json; charset=utf-8',
+  '.svg'  => 'image/svg+xml',
+  '.ico'  => 'image/x-icon',
+  '.png'  => 'image/png',
+  '.jpg'  => 'image/jpeg',
+  '.jpeg' => 'image/jpeg'
+}.freeze
+
 # Verificação e Inicialização do Banco se necessário
 unless File.exist?(DB_PATH)
   puts "🔄 Banco database.sqlite não encontrado. Executando schema e seed..."
@@ -29,7 +41,6 @@ end
 
 server = WEBrick::HTTPServer.new(
   Port: PORT,
-  DocumentRoot: PUBLIC_DIR,
   Logger: WEBrick::Log.new($stderr, WEBrick::Log::INFO),
   AccessLog: []
 )
@@ -282,9 +293,33 @@ server.mount_proc '/api' do |req, res|
   end
 end
 
+# Servidor de Arquivos Estáticos com Leitura em Memória (Sem dependência de sendfile/EPERM)
+server.mount_proc '/' do |req, res|
+  # Ignora chamadas para /api
+  next if req.path.start_with?('/api')
+
+  clean_path = req.path.split('?').first
+  rel_path = (clean_path == '/' || clean_path == '') ? 'index.html' : clean_path.sub(%r{^/}, '')
+  file_path = File.expand_path(rel_path, PUBLIC_DIR)
+
+  if file_path.start_with?(PUBLIC_DIR) && File.file?(file_path)
+    ext = File.extname(file_path).downcase
+    res.status = 200
+    res['Content-Type'] = MIME_TYPES[ext] || 'application/octet-stream'
+    res['Cache-Control'] = 'no-cache'
+    # Utiliza String (File.binread) para que o WEBrick use socket.write e evite Errno::EPERM sendfile no macOS
+    res.body = File.binread(file_path)
+  else
+    res.status = 404
+    res['Content-Type'] = 'text/html; charset=utf-8'
+    res.body = "<h1>404 Não Encontrado</h1><p>Recurso não encontrado: #{req.path}</p>"
+  end
+end
+
 puts "================================================================="
 puts "🚀 ConectaEdu - Servidor Nativo Iniciado na porta #{PORT}"
 puts "👉 Acesse no navegador: http://localhost:#{PORT}"
+puts "👉 Painel do Curador:  http://localhost:#{PORT}/curator.html"
 puts "================================================================="
 
 server.start
