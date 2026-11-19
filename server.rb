@@ -204,7 +204,14 @@ server.mount_proc '/api' do |req, res|
       end
 
     when 'POST'
-      body = req.body ? JSON.parse(req.body) rescue {} : {}
+      body = {}
+      if req.body && !req.body.strip.empty?
+        begin
+          body = JSON.parse(req.body)
+        rescue => _
+          body = {}
+        end
+      end
 
       if path == 'progress'
         user_id = body['userId'] || 'usr_lucas'
