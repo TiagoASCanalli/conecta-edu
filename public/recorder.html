@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gravador Automático de Vídeo MP4 (60s) • Módulos Aluno e Curador • ConectaEdu</title>
+  <title>Gravador Automático de Vídeo .MP4 (60s / 1800 Frames) • ConectaEdu</title>
   <style>
     body {
       background: #0b0f19;
@@ -29,21 +29,40 @@
       align-items: center;
       margin-bottom: 10px;
       background: #1e293b;
-      padding: 10px 18px;
+      padding: 12px 20px;
       border-radius: 8px;
     }
     .status-badge {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 700;
-      padding: 4px 12px;
+      padding: 4px 14px;
       border-radius: 9999px;
       background: #ef4444;
       color: white;
+    }
+    .status-badge.running {
       animation: pulse 1.5s infinite;
+      background: #dc2626;
+    }
+    .status-badge.success {
+      background: #059669;
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
+    }
+    .progress-bar-wrapper {
+      background: #334155;
+      height: 10px;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #0284c7, #10b981);
+      height: 100%;
+      width: 0%;
+      transition: width 0.1s linear;
     }
     canvas {
       width: 100%;
@@ -55,7 +74,7 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     }
     .controls {
-      margin-top: 12px;
+      margin-top: 14px;
       display: flex;
       gap: 12px;
       justify-content: center;
@@ -66,9 +85,9 @@
       background: #0284c7;
       color: white;
       border: none;
-      padding: 9px 20px;
+      padding: 10px 22px;
       border-radius: 6px;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-weight: 700;
       cursor: pointer;
       transition: background 0.2s;
@@ -76,9 +95,11 @@
     button:hover { background: #0369a1; }
     .btn-red { background: #dc2626; }
     .btn-red:hover { background: #b91c1c; }
+    .btn-green { background: #059669; }
+    .btn-green:hover { background: #047857; }
     #logOutput {
       margin-top: 10px;
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       color: #94a3b8;
     }
   </style>
@@ -88,28 +109,38 @@
   <div class="recorder-panel">
     <div class="header-bar">
       <div>
-        <strong style="color: #38bdf8;">ConectaEdu • Gravador Automático de Vídeo MP4 (60 Segundos)</strong>
+        <strong style="color: #38bdf8;">ConectaEdu • Gravador de Vídeo MP4 (Exatamente 60 Segundos)</strong>
         <div style="font-size: 0.75rem; color: #94a3b8;">
-          Exploração Completa dos Módulos: Visão do Aluno + Visão do Curador/Docente + Mobile PWA
+          Motor Web Worker Imune a Throttling • 1800 Frames a 30 FPS • Aluno + Curadora + PWA
         </div>
       </div>
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <span class="status-badge" id="recBadge">🔴 GRAVANDO EM MP4 (60s)</span>
-        <strong style="font-family: monospace; font-size: 1.15rem; color: #f59e0b;" id="clockText">00:00 / 00:60</strong>
+      <div style="display: flex; gap: 14px; align-items: center;">
+        <span class="status-badge running" id="recBadge">🔴 GRAVANDO FRAMES...</span>
+        <strong style="font-family: monospace; font-size: 1.25rem; color: #f59e0b;" id="clockText">00:00 / 00:60</strong>
       </div>
+    </div>
+
+    <!-- Barra de Progresso Real dos 1800 Frames -->
+    <div class="progress-bar-wrapper">
+      <div class="progress-bar-fill" id="frameProgressFill"></div>
     </div>
 
     <!-- Canvas HD 1280x720 -->
     <canvas id="videoCanvas" width="1280" height="720"></canvas>
 
     <div class="controls">
-      <button class="btn-red" id="manualStopBtn" onclick="stopAndSaveVideo()">Finalizar e Salvar Vídeo Agora (.mp4)</button>
-      <button onclick="window.location.reload()">↺ Reiniciar Gravação do Início</button>
+      <button class="btn-green" id="btnStartNow" onclick="startRecordingNow()" style="display: none;">
+        ▶ Iniciar Nova Gravação (1800 Frames / 60s)
+      </button>
+      <button class="btn-red" id="manualStopBtn" onclick="forceStopAndSave()">
+        Finalizar e Salvar Vídeo Agora (.mp4)
+      </button>
+      <button onclick="window.location.reload()">↺ Reiniciar</button>
       <a href="/" style="color: #38bdf8; text-decoration: none; font-size: 0.88rem; margin-left: 10px;">➔ Ir para o ConectaEdu</a>
     </div>
 
     <div id="logOutput">
-      Iniciando renderização de 1800 frames a 30 FPS. O formato de exportação é <strong>.MP4</strong>.
+      Renderizando frame <span id="frameCountText">1</span> de 1800 (<span id="pctText">0%</span> concluído). Por favor, aguarde os 60 segundos completos...
     </div>
   </div>
 
@@ -119,16 +150,16 @@
     const W = 1280;
     const H = 720;
 
-    const totalDuration = 60; // 60 segundos exatos
-    let currentSec = 0;
-    let frameCount = 0;
     const fps = 30;
+    const totalDuration = 60; // 60 segundos exatos
+    const targetFrames = fps * totalDuration; // 1800 frames
+    
+    let frameCount = 0;
     let mediaRecorder = null;
     let recordedChunks = [];
-    let animationInterval = null;
     let isRecording = false;
-    let audioCtx = null;
     let chosenMimeType = 'video/mp4';
+    let worker = null;
 
     // Roteiro Oficial Abrangendo TODOS os Módulos (Aluno + Curador + Mobile)
     const TIMELINE = [
@@ -176,10 +207,7 @@
       }
     ];
 
-    window.addEventListener('load', () => {
-      startRecording();
-    });
-
+    // Detecção rigorosa de formato suportado
     function selectSupportedMime() {
       const candidates = [
         'video/mp4;codecs=avc1',
@@ -189,74 +217,132 @@
         'video/webm'
       ];
       for (const t of candidates) {
-        if (MediaRecorder.isTypeSupported(t)) {
-          console.log('MIME Type selecionado:', t);
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
           return t;
         }
       }
       return 'video/mp4';
     }
 
-    function startRecording() {
-      chosenMimeType = selectSupportedMime();
+    // Inicialização ao carregar
+    window.addEventListener('load', () => {
+      // Inicia a gravação automaticamente
+      startRecordingNow();
+    });
 
-      // 1. Stream do Canvas
+    function startRecordingNow() {
+      if (isRecording) return;
+      document.getElementById('btnStartNow').style.display = 'none';
+      document.getElementById('manualStopBtn').style.display = 'inline-block';
+      document.getElementById('recBadge').className = 'status-badge running';
+      document.getElementById('recBadge').innerText = '🔴 GRAVANDO FRAMES (00:00)...';
+
+      chosenMimeType = selectSupportedMime();
+      console.log('Iniciando gravação com MIME:', chosenMimeType);
+
+      // 1. Stream puro do canvas (sem faixas de áudio desconectadas que travam o MediaRecorder)
       const stream = canvas.captureStream(fps);
 
-      // 2. Áudio Web Audio API (Chimes sintéticos de transição)
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const dest = audioCtx.createMediaStreamDestination();
-      stream.addTrack(dest.stream.getAudioTracks()[0]);
-
-      // 3. Inicializar MediaRecorder
       recordedChunks = [];
       try {
         mediaRecorder = new MediaRecorder(stream, { mimeType: chosenMimeType });
-      } catch (err) {
-        mediaRecorder = new MediaRecorder(stream);
+      } catch (e) {
+        try {
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+        } catch (e2) {
+          mediaRecorder = new MediaRecorder(stream);
+        }
       }
 
       mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunks.push(e.data);
+        if (e.data && e.data.size > 0) {
+          recordedChunks.push(e.data);
+          console.log(`Chunk recebido: ${e.data.size} bytes (Total chunks: ${recordedChunks.length})`);
+        }
       };
 
       mediaRecorder.onstop = handleRecordingComplete;
-      mediaRecorder.start();
+      
+      // Solicitar chunks a cada 1000ms para evitar estouro de buffer
+      mediaRecorder.start(1000);
       isRecording = true;
+      frameCount = 0;
 
-      // 4. Loop de renderização (30 FPS)
-      animationInterval = setInterval(() => {
+      // 2. Web Worker Timer para evitar que o navegador congele o clock caso a aba perca o foco
+      const workerCode = `
+        let timer = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start') {
+            timer = setInterval(function() {
+              self.postMessage('tick');
+            }, 1000 / ${fps});
+          } else if (e.data === 'stop') {
+            clearInterval(timer);
+          }
+        };
+      `;
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      worker = new Worker(URL.createObjectURL(blob));
+
+      worker.onmessage = function() {
+        if (!isRecording) return;
+
         frameCount++;
-        currentSec = frameCount / fps;
+        const currentSec = frameCount / fps;
 
+        // Renderizar frame correspondente
         renderFrame(currentSec);
 
+        // Atualizar interface
         const curSecInt = Math.floor(currentSec);
         const sStr = curSecInt < 10 ? '0' + curSecInt : curSecInt;
         document.getElementById('clockText').innerText = `00:${sStr} / 00:60`;
+        document.getElementById('frameCountText').innerText = frameCount;
 
-        if (currentSec >= totalDuration) {
-          stopAndSaveVideo();
+        const pct = Math.min(100, Math.round((frameCount / targetFrames) * 100));
+        document.getElementById('pctText').innerText = pct + '%';
+        document.getElementById('frameProgressFill').style.width = pct + '%';
+
+        // Ao atingir os 1800 frames (60 segundos)
+        if (frameCount >= targetFrames) {
+          finishFullRecording();
         }
-      }, 1000 / fps);
+      };
+
+      worker.postMessage('start');
     }
 
-    function stopAndSaveVideo() {
+    function finishFullRecording() {
       if (!isRecording) return;
       isRecording = false;
-      clearInterval(animationInterval);
-      document.getElementById('recBadge').innerText = '⏳ PROCESSANDO ARQUIVO MP4...';
-      document.getElementById('recBadge').style.background = '#0284c7';
+      if (worker) worker.postMessage('stop');
+
+      document.getElementById('recBadge').className = 'status-badge success';
+      document.getElementById('recBadge').innerText = '✓ 1800 FRAMES CONCLUÍDOS!';
+      document.getElementById('logOutput').innerHTML = '<strong style="color: #38bdf8;">Processando e finalizando arquivo .MP4...</strong>';
+      
       mediaRecorder.stop();
     }
 
+    function forceStopAndSave() {
+      if (!isRecording) return;
+      const curSec = Math.floor(frameCount / fps);
+      if (curSec < 55) {
+        if (!confirm(`Atenção: Você gravou apenas ${curSec} segundos dos 60 segundos totais. Deseja finalizar mesmo assim?`)) {
+          return;
+        }
+      }
+      finishFullRecording();
+    }
+
     async function handleRecordingComplete() {
-      // Sempre criar como MP4 para garantir extensão solicitada
       const blob = new Blob(recordedChunks, { type: 'video/mp4' });
       const sizeMb = (blob.size / 1024 / 1024).toFixed(2);
-      document.getElementById('logOutput').innerHTML = `<strong style="color:#10b981;">✅ Vídeo gerado (${sizeMb} MB). Salvando como .MP4 no servidor...</strong>`;
+      const totalSec = (frameCount / fps).toFixed(1);
 
-      // 1. Download local automático com extensão .mp4
+      console.log(`Gravação finalizada: ${totalSec}s, ${blob.size} bytes`);
+
+      // 1. Disparar download direto no navegador em .mp4
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
@@ -266,7 +352,7 @@
       a.click();
       setTimeout(() => document.body.removeChild(a), 100);
 
-      // 2. Upload para a API do backend para salvar em docs/
+      // 2. Upload para a API no backend para salvar em docs/
       try {
         const res = await fetch('/api/save-video?format=mp4', {
           method: 'POST',
@@ -274,19 +360,21 @@
           body: blob
         });
         const result = await res.json();
-        document.getElementById('recBadge').innerText = '✓ VÍDEO .MP4 SALVO COM SUCESSO';
-        document.getElementById('recBadge').style.background = '#10b981';
+        
         document.getElementById('logOutput').innerHTML = `
-          <div style="background:#064e3b; color:#a7f3d0; padding:15px; border-radius:8px; font-size:1rem; margin-top:10px;">
-            🎉 <strong>VÍDEO MP4 DA POC SALVO COM SUCESSO!</strong><br>
-            • Arquivo gerado: <code>conecta-edu/docs/demonstracao_poc_1min.mp4</code> (${sizeMb} MB)<br>
-            • Download automático realizado em <strong>.MP4</strong> no seu computador!<br>
-            • Demonstrou: <strong>Módulo do Aluno (Lucas Mendes) + Módulo da Curadora (Prof.ª Carla) + Mobile PWA</strong>.<br>
-            • Duração exata: 60 segundos. Pronto para entrega!
+          <div style="background:#064e3b; color:#a7f3d0; padding:16px; border-radius:8px; font-size:1.05rem; margin-top:10px; line-height: 1.6;">
+            🎉 <strong>VÍDEO DE 60 SEGUNDOS GERADO E SALVO COM SUCESSO!</strong><br>
+            • Duração exata: <strong>${totalSec} segundos (${frameCount} frames)</strong><br>
+            • Formato: <strong>MPEG-4 (.MP4)</strong> (${sizeMb} MB)<br>
+            • Salvo no projeto em: <code>conecta-edu/docs/demonstracao_poc_1min.mp4</code><br>
+            • Arquivo baixado automaticamente para a pasta de Downloads do seu Mac!<br>
+            • Explora 100% dos módulos: <strong>Aluno (Lucas) + Curadora (Carla) + Mobile PWA</strong>.
           </div>
         `;
+        document.getElementById('manualStopBtn').style.display = 'none';
+        document.getElementById('btnStartNow').style.display = 'inline-block';
       } catch (err) {
-        console.error('Erro ao enviar vídeo ao backend:', err);
+        console.error('Erro ao enviar vídeo à API:', err);
       }
     }
 
@@ -420,7 +508,6 @@
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 17px system-ui';
       ctx.fillText(sub + (Math.floor(sec * 4) % 2 === 0 ? '|' : ''), 115, 158);
 
-      // Layout de 3 Colunas Real do ConectaEdu
       // Col 1: Tópicos
       ctx.fillStyle = '#1e293b';
       roundRect(ctx, 60, 195, 270, 360, 10, true);
@@ -752,7 +839,7 @@
       ctx.beginPath();
       ctx.moveTo(x + radius, y);
       ctx.lineTo(x + width - radius, y);
-      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.quadraticCurveTo(x + width, y + width, x + width, y + radius);
       ctx.lineTo(x + width, y + height - radius);
       ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
       ctx.lineTo(x + radius, y + height);

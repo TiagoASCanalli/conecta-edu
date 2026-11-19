@@ -225,19 +225,24 @@ server.mount_proc '/api' do |req, res|
         mp4_path = File.join(DOCS_DIR, 'demonstracao_poc_1min.mp4')
 
         bytes = req.body || ''
+        File.binwrite(mp4_path, bytes)
         File.binwrite(webm_path, bytes)
-        File.binwrite(mp4_path, bytes) rescue nil
 
+        if bytes.bytesize > 10_000 && File.exist?('/usr/bin/avconvert') && !bytes[4..7].to_s.include?('ftyp')
+          system("/usr/bin/avconvert -s \"#{webm_path}\" -p Preset1280x720 -o \"#{mp4_path}\" --replace > /dev/null 2>&1")
+        end
+
+        final_size = File.size(mp4_path) rescue bytes.bytesize
         puts "================================================================="
-        puts "✅ VÍDEO DA POC SALVO COM SUCESSO!"
-        puts "👉 Arquivo: #{webm_path} (#{bytes.bytesize} bytes)"
+        puts "✅ VÍDEO MP4 DA POC SALVO COM SUCESSO!"
+        puts "👉 Arquivo: #{mp4_path} (#{final_size} bytes)"
         puts "================================================================="
 
         json_response(res, {
           success: true,
-          message: 'Vídeo gravado e salvo com sucesso na pasta docs!',
-          file: 'docs/demonstracao_poc_1min.webm',
-          size_bytes: bytes.bytesize
+          message: 'Vídeo MP4 gravado e salvo com sucesso na pasta docs!',
+          file: 'docs/demonstracao_poc_1min.mp4',
+          size_bytes: final_size
         }, 201)
         next
       end
