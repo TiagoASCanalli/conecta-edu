@@ -1,0 +1,19 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Ambiente e IDEs
+.env
+.vscode/
+.idea/
+
+# Temporários
+*.tmp

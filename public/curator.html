@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#004587">
+  <title>ConectaEdu | Painel da Curadora / Docente - Senac SP</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .curator-container {
+      max-width: 1000px;
+      margin: 2rem auto 4rem;
+      padding: 0 1rem;
+    }
+    .curator-header {
+      background: white;
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .curator-profile {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .curator-avatar {
+      font-size: 2.2rem;
+      background: #f1f5f9;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      border: 2px solid var(--senac-orange);
+    }
+    .form-card {
+      background: white;
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 2rem;
+    }
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.4rem;
+    }
+    .form-control {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) {
+      .form-grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .connections-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+    }
+    .connections-table th {
+      background: #f8fafc;
+      padding: 0.75rem;
+      text-align: left;
+      font-weight: 700;
+      color: var(--text-main);
+      border-bottom: 2px solid var(--border-color);
+    }
+    .connections-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: top;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="logo-brand">
+        <div class="logo-icon">CE</div>
+        <div class="logo-text">
+          <h1>ConectaEdu</h1>
+          <span>PAINEL DO CURADOR / DOCENTE</span>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <a href="/" class="btn-secondary">
+          <span>👨‍💻</span>
+          <span>Voltar para Visão do Aluno</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="curator-container">
+    
+    <!-- Perfil da Curadora: Prof.ª Dra. Carla Silveira -->
+    <div class="curator-header">
+      <div class="curator-profile">
+        <div class="curator-avatar">👩‍🏫</div>
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--senac-blue);">Prof.ª Dra. Carla Silveira</h2>
+          <p style="font-size: 0.82rem; color: var(--text-muted);">
+            Coordenadora Acadêmica e Curadora de Trilhas • Senac SP
+          </p>
+        </div>
+      </div>
+      <span class="badge-tag" style="margin: 0;">MÓDULO DE CURADORIA DE CONTEÚDO</span>
+    </div>
+
+    <!-- Formulário para Criar Nova Conexão Interdisciplinar -->
+    <div class="form-card">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--senac-blue); margin-bottom: 0.5rem;">
+        ➕ Mapear Nova Ponte Interdisciplinar
+      </h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+        Crie conexões entre matérias teóricas e práticas para que os estudantes descubram a aplicação no mercado.
+      </p>
+
+      <form id="newConnectionForm">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label" for="selectOrigin">Tópico Teórico de Origem:</label>
+            <select class="form-control" id="selectOrigin" required>
+              <option value="">Selecione o tópico de origem...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="selectDest">Tópico Prático de Destino (Conexão):</label>
+            <select class="form-control" id="selectDest" required>
+              <option value="">Selecione o tópico de destino...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="relationType">Tipo de Relação Interdisciplinar:</label>
+          <select class="form-control" id="relationType" required>
+            <option value="Prática Aplicada">Prática Aplicada no Mercado</option>
+            <option value="Integração de Camada">Integração de Camada Arquitetural</option>
+            <option value="Pré-requisito Teórico">Pré-requisito Teórico</option>
+            <option value="Consumo de Serviço">Consumo de Serviço / API</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="explanation">Justificativa da Conexão (Por que estão ligados?):</label>
+          <textarea class="form-control" id="explanation" rows="3" placeholder="Ex: Explique ao estudante como as tabelas do banco relacional viram modelos ORM na API..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="example">Exemplo Comparativo / Ponte de Código:</label>
+          <input type="text" class="form-control" id="example" placeholder="Ex: SQL DDL CREATE TABLE -> Prisma Schema model Aluno">
+        </div>
+
+        <button type="submit" class="btn-primary" style="padding: 0.65rem 1.5rem; font-size: 0.9rem;">
+          Salvar Conexão Interdisciplinar
+        </button>
+      </form>
+    </div>
+
+    <!-- Tabela de Conexões Cadastradas -->
+    <div class="form-card">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--senac-blue); margin-bottom: 0.5rem;">
+        🕸️ Pontes Interdisciplinares Ativas no Sistema
+      </h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted);">
+        Estas são as conexões atualmente recomendadas aos alunos pelo algoritmo do ConectaEdu.
+      </p>
+
+      <div style="overflow-x: auto;">
+        <table class="connections-table">
+          <thead>
+            <tr>
+              <th>Origem</th>
+              <th>Destino (Conexão)</th>
+              <th>Tipo</th>
+              <th>Explicação Pedagógica</th>
+            </tr>
+          </thead>
+          <tbody id="connectionsTableBody">
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-muted);">Carregando conexões...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer class="footer">
+    <p>Projeto Integrador: Desenvolvimento de Sistemas Orientado a Dispositivos Móveis e Baseados na Web</p>
+    <p class="footer-team">
+      Jonathan da Silva Cavalcanti • Renan Duarte Coelho • Tiago Alves dos Santos Canalli • Vanessa Kolbe da Silva
+    </p>
+    <p style="margin-top: 0.35rem; font-size: 0.75rem;">
+      Orientador: Prof. Msc. Anderson Clayton Garcia Lopes • Senac SP 2026
+    </p>
+  </footer>
+
+  <script src="/js/curator.js"></script>
+</body>
+</html>

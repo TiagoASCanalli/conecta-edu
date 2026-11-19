@@ -1,0 +1,32 @@
+{
+  "name": "conecta-edu",
+  "version": "1.0.0",
+  "description": "Plataforma de Aprendizado Dinâmico e Interdisciplinar - Projeto Integrador Senac SP TADS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "start:ruby": "ruby server.rb",
+    "init-db": "node database/init_db.js"
+  },
+  "keywords": [
+    "senac",
+    "projeto-integrador",
+    "poc",
+    "interdisciplinar",
+    "tads",
+    "orm",
+    "rest-api",
+    "pwa"
+  ],
+  "author": "Jonathan da Silva Cavalcanti, Renan Duarte Coelho, Tiago Alves dos Santos Canalli, Vanessa Kolbe da Silva",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
