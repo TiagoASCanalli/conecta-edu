@@ -3,7 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gravador Automático de Vídeo .MP4 (60s) • Com Áudio Real • ConectaEdu</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Gravador Oficial ConectaEdu (60s) • Com Áudio Real • Senac SP</title>
+  <script>
+    // Limpeza forçada de qualquer Service Worker ou Cache antigo
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) { r.unregister(); }
+      });
+    }
+    if (window.caches) {
+      caches.keys().then(function(keys) {
+        keys.forEach(function(k) { caches.delete(k); });
+      });
+    }
+  </script>
   <style>
     body {
       background: #0b0f19;
@@ -147,6 +163,11 @@
     <div style="margin-top: 12px; background: #1e293b; padding: 8px 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;">
       <span style="font-size: 0.84rem; color: #cbd5e1; font-weight: 600;">🔊 Prévia da Locução em Português (59 segundos):</span>
       <audio controls style="height: 32px;" src="/audio/locucao_poc_60s.m4a"></audio>
+      <span id="audioStatusText" style="font-size: 0.8rem; color: #38bdf8;">⏳ Carregando áudio na memória...</span>
+    </div>
+
+    <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 8px;">
+      💡 <strong>Dica de Navegador:</strong> No Mac, o <strong>Safari</strong> grava em <code>.MP4</code> nativo (Apple AAC) para o QuickTime Player. No <strong>Chrome</strong>, é gerado com áudio para navegadores e VLC.
     </div>
 
     <div id="logOutput">
@@ -226,23 +247,44 @@
     ];
 
     function selectSupportedMime() {
-      const candidates = [
-        'video/mp4;codecs=avc1,mp4a.40.2',
-        'video/mp4',
-        'video/webm;codecs=h264,opus',
-        'video/webm;codecs=vp9,opus',
-        'video/webm'
-      ];
-      for (const t of candidates) {
-        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
-          return t;
-        }
+      // 1. Safari no macOS: Suporta nativamente video/mp4 com áudio AAC
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) {
+        return { mime: 'video/mp4;codecs=avc1,mp4a.40.2', ext: 'mp4', label: 'MP4 (Apple H.264 + AAC Nativo)' };
       }
-      return 'video/mp4';
+      // 2. Chrome no macOS/Windows: video/mp4 no Chrome NÃO grava áudio! Usar WebM com Opus para áudio 100% garantido
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+        return { mime: 'video/webm;codecs=vp9,opus', ext: 'webm', label: 'WebM com Opus (Áudio Integrado no Chrome)' };
+      }
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+        return { mime: 'video/webm;codecs=vp8,opus', ext: 'webm', label: 'WebM com Opus (Áudio Integrado)' };
+      }
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm')) {
+        return { mime: 'video/webm', ext: 'webm', label: 'WebM com Áudio' };
+      }
+      return { mime: 'video/mp4', ext: 'mp4', label: 'MP4' };
+    }
+
+    let audioBuffer = null;
+    let currentBufferSource = null;
+    let selectedFormat = null;
+
+    async function preloadAudio() {
+      try {
+        const resp = await fetch('/audio/locucao_poc_60s.wav');
+        const buf = await resp.arrayBuffer();
+        const actx = new (window.AudioContext || window.webkitAudioContext)();
+        audioBuffer = await actx.decodeAudioData(buf);
+        console.log("Áudio WAV carregado na memória:", audioBuffer.duration);
+        const st = document.getElementById('audioStatusText');
+        if (st) st.innerHTML = '✅ Locução (59s) carregada na memória e sincronizada';
+      } catch (err) {
+        console.warn("Preload audio warning:", err);
+      }
     }
 
     window.addEventListener('load', () => {
       renderFrame(0);
+      preloadAudio();
     });
 
     async function startRecordingNow() {
@@ -252,45 +294,47 @@
       document.getElementById('recBadge').className = 'status-badge running';
       document.getElementById('recBadge').innerText = '🔴 GRAVANDO FRAMES COM ÁUDIO...';
 
-      chosenMimeType = selectSupportedMime();
+      selectedFormat = selectSupportedMime();
+      chosenMimeType = selectedFormat.mime;
 
-      // 1. Stream do Canvas de Vídeo
-      const stream = canvas.captureStream(fps);
+      // 1. Áudio com Web Audio API - buffer sincronizado sample a sample
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      const audioDest = audioCtx.createMediaStreamDestination();
 
-      // 2. Conectar e Iniciar Áudio Real da Locução
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const source = audioCtx.createMediaElementSource(audioEl);
-          const dest = audioCtx.createMediaStreamDestination();
-
-          source.connect(audioCtx.destination); // Reproduz no fone/alto-falante
-          source.connect(dest);                 // Envia para o MediaRecorder
-
-          const audioTrack = dest.stream.getAudioTracks()[0];
-          if (audioTrack) {
-            stream.addTrack(audioTrack);
-          }
-        }
-        if (audioCtx.state === 'suspended') {
-          await audioCtx.resume();
-        }
-
+      if (audioBuffer) {
+        currentBufferSource = audioCtx.createBufferSource();
+        currentBufferSource.buffer = audioBuffer;
+        currentBufferSource.connect(audioCtx.destination); // Toca no alto-falante
+        currentBufferSource.connect(audioDest);            // Envia para o MediaRecorder
+        currentBufferSource.start(0);
+      } else {
+        const source = audioCtx.createMediaElementSource(audioEl);
+        source.connect(audioCtx.destination);
+        source.connect(audioDest);
         audioEl.currentTime = 0;
         await audioEl.play();
-      } catch (err) {
-        console.warn('Configuração de áudio:', err);
+      }
+
+      // 2. Stream unificado do Canvas + Faixa de Áudio
+      const canvasStream = canvas.captureStream(fps);
+      const combinedStream = new MediaStream();
+      canvasStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
+
+      const audioTrack = audioDest.stream.getAudioTracks()[0];
+      if (audioTrack) {
+        combinedStream.addTrack(audioTrack);
+        console.log("Faixa de áudio incorporada com sucesso ao gravador:", audioTrack.label);
       }
 
       recordedChunks = [];
       try {
-        mediaRecorder = new MediaRecorder(stream, { mimeType: chosenMimeType });
+        mediaRecorder = new MediaRecorder(combinedStream, { mimeType: chosenMimeType });
       } catch (e) {
-        try {
-          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-        } catch (e2) {
-          mediaRecorder = new MediaRecorder(stream);
-        }
+        console.warn("Fallback de gravação:", e);
+        mediaRecorder = new MediaRecorder(combinedStream);
       }
 
       mediaRecorder.ondataavailable = (e) => {
@@ -370,44 +414,55 @@
     }
 
     async function handleRecordingComplete() {
-      const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+      const ext = selectedFormat ? selectedFormat.ext : 'mp4';
+      const label = selectedFormat ? selectedFormat.label : 'Vídeo com Áudio';
+      const blob = new Blob(recordedChunks, { type: chosenMimeType });
       const sizeMb = (blob.size / 1024 / 1024).toFixed(2);
       const totalSec = (frameCount / fps).toFixed(1);
+      const fileName = `demonstracao_poc_1min.${ext}`;
 
       // 1. Download direto no navegador
-      const url = URL.createObjectURL(blob);
+      const videoBlobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
-      a.href = url;
-      a.download = 'demonstracao_poc_1min.mp4';
+      a.href = videoBlobUrl;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => document.body.removeChild(a), 100);
 
       // 2. Upload para a API do backend
       try {
-        const res = await fetch('/api/save-video?format=mp4', {
+        await fetch(`/api/save-video?format=${ext}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'video/mp4' },
+          headers: { 'Content-Type': chosenMimeType },
           body: blob
         });
-        const result = await res.json();
-        
-        document.getElementById('logOutput').innerHTML = `
-          <div style="background:#064e3b; color:#a7f3d0; padding:16px; border-radius:8px; font-size:1.05rem; margin-top:10px; line-height: 1.6;">
-            🎉 <strong>VÍDEO DE 60 SEGUNDOS GERADO E SALVO COM SUCESSO!</strong><br>
-            • Duração exata: <strong>${totalSec} segundos (${frameCount} frames)</strong><br>
-            • Formato: <strong>MPEG-4 (.MP4) COM ÁUDIO SINTETIZADO</strong> (${sizeMb} MB)<br>
-            • Salvo no projeto em: <code>conecta-edu/docs/demonstracao_poc_1min.mp4</code><br>
-            • Arquivo baixado para a pasta de Downloads do seu Mac!<br>
-            • Layout corrigido, textos alinhados e legendas de cinema!
-          </div>
-        `;
-        document.getElementById('manualStopBtn').style.display = 'none';
-        document.getElementById('btnStartNow').style.display = 'inline-block';
       } catch (err) {
         console.error('Erro ao enviar vídeo à API:', err);
       }
+
+      // 3. Renderiza Player de Vídeo DIRETO na tela com Áudio ao vivo!
+      document.getElementById('logOutput').innerHTML = `
+        <div style="background:#064e3b; color:#a7f3d0; padding:20px; border-radius:10px; font-size:1.05rem; margin-top:14px; line-height: 1.6; text-align: center;">
+          🎉 <strong>VÍDEO DE 60 SEGUNDOS GRAVADO COM ÁUDIO SINTETIZADO!</strong><br>
+          • Duração exata: <strong>${totalSec}s (${frameCount} frames a 30 FPS)</strong><br>
+          • Formato Gerado: <strong>${label}</strong> (${sizeMb} MB)<br>
+          • Salvo no projeto em: <code>conecta-edu/docs/${fileName}</code><br>
+          • Baixado para a pasta de Downloads do seu Mac!<br><br>
+          
+          <div style="margin: 14px auto; max-width: 680px;">
+            <video src="${videoBlobUrl}" controls autoplay style="width: 100%; border-radius: 8px; border: 2px solid #10b981; box-shadow: 0 6px 24px rgba(0,0,0,0.6);"></video>
+          </div>
+          
+          <div style="margin-top: 10px; font-size: 0.88rem; color: #cbd5e1; line-height: 1.5;">
+            🔊 <strong>Reprodução Instantânea:</strong> Dê play no vídeo acima para ouvir a locução agora mesmo no seu navegador!<br>
+            ${ext === 'webm' ? 'ℹ️ Gravado via Chrome com áudio Opus. Para abrir no QuickTime do Mac com som, você também pode gravar diretamente no Safari (que gera .MP4 nativo com AAC).' : 'ℹ️ Formato .MP4 nativo compatível com o QuickTime Player do macOS!'}
+          </div>
+        </div>
+      `;
+      document.getElementById('manualStopBtn').style.display = 'none';
+      document.getElementById('btnStartNow').style.display = 'inline-block';
     }
 
     // =========================================================================

@@ -1,8 +1,8 @@
 /**
  * Service Worker para ConectaEdu (PWA)
- * Suporte a navegação resiliente e cache de recursos estáticos
+ * Suporte a navegação resiliente e cache de recursos estáticos da aplicação
  */
-const CACHE_NAME = 'conectaedu-cache-v1';
+const CACHE_NAME = 'conectaedu-cache-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -16,7 +16,6 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('📦 ConectaEdu SW: Pré-carregando recursos essenciais em cache...');
       return cache.addAll(ASSETS_TO_CACHE);
     }).then(() => self.skipWaiting())
   );
@@ -28,6 +27,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('🧹 ConectaEdu SW: Limpando cache antigo:', key);
             return caches.delete(key);
           }
         })
@@ -37,18 +37,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições de API para manter dados atualizados
-  if (event.request.url.includes('/api/')) {
+  const url = event.request.url;
+
+  // NUNCA interceptar ou armazenar em cache: gravador, áudios, vídeos ou rotas de API
+  if (
+    url.includes('/api/') || 
+    url.includes('recorder') || 
+    url.includes('demo-video') || 
+    url.includes('/audio/') || 
+    url.includes('demonstracao_poc')
+  ) {
     event.respondWith(fetch(event.request));
     return;
   }
 
+  // Estratégia Network-First para desenvolvimento confiável
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((response) => {
+    fetch(event.request)
+      .then((response) => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
@@ -57,12 +63,7 @@ self.addEventListener('fetch', (event) => {
           cache.put(event.request, responseToCache);
         });
         return response;
-      });
-    }).catch(() => {
-      // Fallback para index offline se for navegação
-      if (event.request.mode === 'navigate') {
-        return caches.match('/index.html');
-      }
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });

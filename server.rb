@@ -30,7 +30,11 @@ MIME_TYPES = {
   '.jpg'  => 'image/jpeg',
   '.jpeg' => 'image/jpeg',
   '.webm' => 'video/webm',
-  '.mp4'  => 'video/mp4'
+  '.mp4'  => 'video/mp4',
+  '.m4a'  => 'audio/mp4',
+  '.wav'  => 'audio/wav',
+  '.mp3'  => 'audio/mpeg',
+  '.aiff' => 'audio/aiff'
 }.freeze
 
 # Verificação e Inicialização do Banco se necessário
@@ -221,27 +225,29 @@ server.mount_proc '/api' do |req, res|
     when 'POST'
       if path == 'save-video'
         FileUtils.mkdir_p(DOCS_DIR)
+        fmt = (req.query['format'] || 'mp4').downcase
         webm_path = File.join(DOCS_DIR, 'demonstracao_poc_1min.webm')
         mp4_path = File.join(DOCS_DIR, 'demonstracao_poc_1min.mp4')
 
         bytes = req.body || ''
-        File.binwrite(mp4_path, bytes)
-        File.binwrite(webm_path, bytes)
-
-        if bytes.bytesize > 10_000 && File.exist?('/usr/bin/avconvert') && !bytes[4..7].to_s.include?('ftyp')
-          system("/usr/bin/avconvert -s \"#{webm_path}\" -p Preset1280x720 -o \"#{mp4_path}\" --replace > /dev/null 2>&1")
+        if fmt == 'webm'
+          File.binwrite(webm_path, bytes)
+          File.binwrite(mp4_path, bytes) # para garantir acesso por ambas as URLs
+        else
+          File.binwrite(mp4_path, bytes)
         end
 
-        final_size = File.size(mp4_path) rescue bytes.bytesize
+        saved_file = fmt == 'webm' ? 'demonstracao_poc_1min.webm' : 'demonstracao_poc_1min.mp4'
+        final_size = bytes.bytesize
         puts "================================================================="
-        puts "✅ VÍDEO MP4 DA POC SALVO COM SUCESSO!"
-        puts "👉 Arquivo: #{mp4_path} (#{final_size} bytes)"
+        puts "✅ VÍDEO DA POC RECEBIDO E SALVO COM SUCESSO!"
+        puts "👉 Arquivo: docs/#{saved_file} (#{final_size} bytes)"
         puts "================================================================="
 
         json_response(res, {
           success: true,
-          message: 'Vídeo MP4 gravado e salvo com sucesso na pasta docs!',
-          file: 'docs/demonstracao_poc_1min.mp4',
+          message: "Vídeo gravado e salvo com sucesso como docs/#{saved_file}!",
+          file: "docs/#{saved_file}",
           size_bytes: final_size
         }, 201)
         next
@@ -343,7 +349,15 @@ server.mount_proc '/' do |req, res|
     ext = File.extname(file_path).downcase
     res.status = 200
     res['Content-Type'] = MIME_TYPES[ext] || 'application/octet-stream'
-    res['Cache-Control'] = 'no-cache'
+    
+    if rel_path.include?('recorder') || rel_path.include?('sw.js') || rel_path.include?('demo-video')
+      res['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+      res['Pragma'] = 'no-cache'
+      res['Expires'] = '0'
+    else
+      res['Cache-Control'] = 'no-cache'
+    end
+    
     res.body = File.binread(file_path)
   else
     res.status = 404

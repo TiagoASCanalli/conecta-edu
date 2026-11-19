@@ -244,7 +244,7 @@
 
     <!-- Teleprompter com a Fala Sincronizada -->
     <div class="teleprompter-card">
-      <div class="teleprompter-speaker" id="teleprompterSpeaker">LOCUÇÃO DO VÍDEO (ROTEIRO OFICIAL):</div>
+      <div class="teleprompter-speaker" id="teleprompterSpeaker">LEGENDA DO VÍDEO:</div>
       <div class="teleprompter-text" id="teleprompterText">
         Clique em "Iniciar Apresentação" para começar a demonstração automática com áudio e cursor guiado.
       </div>
@@ -391,7 +391,7 @@
 
         // Atualizar teleprompter
         document.getElementById('teleprompterText').innerText = `"${step.speech}"`;
-        document.getElementById('teleprompterSpeaker').innerText = `LOCUÇÃO (ETAPA: ${step.title}):`;
+        document.getElementById('teleprompterSpeaker').innerText = `ETAPA: ${step.title}`;
 
         // Se estiver no primeiro segundo da etapa, falar e disparar ação
         if (currentSeconds === step.start) {
