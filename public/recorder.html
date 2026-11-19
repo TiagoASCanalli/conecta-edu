@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gravador Automático de Vídeo .MP4 (60s / 1800 Frames) • ConectaEdu</title>
+  <title>Gravador Automático de Vídeo .MP4 (60s) • Layout Fiel • ConectaEdu</title>
   <style>
     body {
       background: #0b0f19;
@@ -59,7 +59,7 @@
       margin-bottom: 10px;
     }
     .progress-bar-fill {
-      background: linear-gradient(90deg, #0284c7, #10b981);
+      background: linear-gradient(90deg, #004587, #10b981);
       height: 100%;
       width: 0%;
       transition: width 0.1s linear;
@@ -68,7 +68,7 @@
       width: 100%;
       max-width: 1280px;
       aspect-ratio: 16 / 9;
-      background: #0f172a;
+      background: #f8fafc;
       border-radius: 12px;
       border: 3px solid #334155;
       box-shadow: 0 10px 40px rgba(0,0,0,0.6);
@@ -82,7 +82,7 @@
       flex-wrap: wrap;
     }
     button {
-      background: #0284c7;
+      background: #004587;
       color: white;
       border: none;
       padding: 10px 22px;
@@ -92,7 +92,7 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    button:hover { background: #0369a1; }
+    button:hover { background: #00366b; }
     .btn-red { background: #dc2626; }
     .btn-red:hover { background: #b91c1c; }
     .btn-green { background: #059669; }
@@ -111,7 +111,7 @@
       <div>
         <strong style="color: #38bdf8;">ConectaEdu • Gravador de Vídeo MP4 (Exatamente 60 Segundos)</strong>
         <div style="font-size: 0.75rem; color: #94a3b8;">
-          Motor Web Worker Imune a Throttling • 1800 Frames a 30 FPS • Aluno + Curadora + PWA
+          Layout 100% Fiel à Aplicação • Módulo do Aluno (Lucas) + Módulo da Curadora (Prof.ª Carla) + Mobile PWA
         </div>
       </div>
       <div style="display: flex; gap: 14px; align-items: center;">
@@ -125,7 +125,7 @@
       <div class="progress-bar-fill" id="frameProgressFill"></div>
     </div>
 
-    <!-- Canvas HD 1280x720 -->
+    <!-- Canvas HD 1280x720 com fundo idêntico à aplicação (#f8fafc) -->
     <canvas id="videoCanvas" width="1280" height="720"></canvas>
 
     <div class="controls">
@@ -167,42 +167,42 @@
         start: 0,
         end: 8,
         module: "Abertura & Contexto",
-        url: "https://conectaedu.senacsp.edu.br",
+        url: "http://localhost:3000",
         speech: "Olá professor Anderson e colegas! Apresentamos a PoC funcional do ConectaEdu (Senac TADS), desenvolvida para eliminar o isolamento entre disciplinas teóricas e práticas."
       },
       {
         start: 8,
         end: 20,
         module: "Visão do Aluno • Busca & Teoria",
-        url: "https://conectaedu.senacsp.edu.br/?q=Modelagem",
+        url: "http://localhost:3000",
         speech: "Na visão do estudante Lucas Mendes: ao buscar 'Modelagem de Banco de Dados Relacional', o sistema exibe o conteúdo teórico curricular e o código SQL DDL das tabelas."
       },
       {
         start: 20,
         end: 32,
         module: "Visão do Aluno • Conteúdos Correlatos",
-        url: "https://conectaedu.senacsp.edu.br/topicos/top_orm_web",
+        url: "http://localhost:3000",
         speech: "Aqui o diferencial: o motor interdisciplinar recomenda 'Integração ORM em Aplicações Web', mostrando como as tabelas relacionais viram classes Prisma e endpoints na API Express!"
       },
       {
         start: 32,
         end: 42,
         module: "Visão do Aluno • Progresso & SQLite",
-        url: "https://conectaedu.senacsp.edu.br/trilhas/trilha_fullstack_orm",
+        url: "http://localhost:3000",
         speech: "Lucas acompanha seu ritmo: marca como 'Concluído', vê a barra de progresso atingir 100% no SQLite, favorita a trilha e compartilha o link com o grupo."
       },
       {
         start: 42,
         end: 54,
         module: "Visão da Curadora / Docente (Prof.ª Carla)",
-        url: "https://conectaedu.senacsp.edu.br/curator.html",
+        url: "http://localhost:3000/curator.html",
         speech: "Na visão da Curadora Prof.ª Dra. Carla Silveira: ela acessa o painel docente para estruturar novas pontes no grafo e visualizar as conexões ativas entre as matérias."
       },
       {
         start: 54,
         end: 60,
         module: "Responsividade Mobile PWA & Conclusão",
-        url: "https://conectaedu.senacsp.edu.br/mobile",
+        url: "http://localhost:3000",
         speech: "Aplicação 100% responsiva para celulares com cache PWA offline. PoC plenamente comprovada e código no GitHub! Muito obrigado!"
       }
     ];
@@ -226,7 +226,6 @@
 
     // Inicialização ao carregar
     window.addEventListener('load', () => {
-      // Inicia a gravação automaticamente
       startRecordingNow();
     });
 
@@ -238,9 +237,8 @@
       document.getElementById('recBadge').innerText = '🔴 GRAVANDO FRAMES (00:00)...';
 
       chosenMimeType = selectSupportedMime();
-      console.log('Iniciando gravação com MIME:', chosenMimeType);
 
-      // 1. Stream puro do canvas (sem faixas de áudio desconectadas que travam o MediaRecorder)
+      // Stream puro do canvas
       const stream = canvas.captureStream(fps);
 
       recordedChunks = [];
@@ -257,18 +255,15 @@
       mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
           recordedChunks.push(e.data);
-          console.log(`Chunk recebido: ${e.data.size} bytes (Total chunks: ${recordedChunks.length})`);
         }
       };
 
       mediaRecorder.onstop = handleRecordingComplete;
-      
-      // Solicitar chunks a cada 1000ms para evitar estouro de buffer
-      mediaRecorder.start(1000);
+      mediaRecorder.start(1000); // chunk regular a cada 1s
       isRecording = true;
       frameCount = 0;
 
-      // 2. Web Worker Timer para evitar que o navegador congele o clock caso a aba perca o foco
+      // Web Worker Timer (Não sofre throttling caso a aba fique em background)
       const workerCode = `
         let timer = null;
         self.onmessage = function(e) {
@@ -290,10 +285,8 @@
         frameCount++;
         const currentSec = frameCount / fps;
 
-        // Renderizar frame correspondente
         renderFrame(currentSec);
 
-        // Atualizar interface
         const curSecInt = Math.floor(currentSec);
         const sStr = curSecInt < 10 ? '0' + curSecInt : curSecInt;
         document.getElementById('clockText').innerText = `00:${sStr} / 00:60`;
@@ -303,7 +296,6 @@
         document.getElementById('pctText').innerText = pct + '%';
         document.getElementById('frameProgressFill').style.width = pct + '%';
 
-        // Ao atingir os 1800 frames (60 segundos)
         if (frameCount >= targetFrames) {
           finishFullRecording();
         }
@@ -340,8 +332,6 @@
       const sizeMb = (blob.size / 1024 / 1024).toFixed(2);
       const totalSec = (frameCount / fps).toFixed(1);
 
-      console.log(`Gravação finalizada: ${totalSec}s, ${blob.size} bytes`);
-
       // 1. Disparar download direto no navegador em .mp4
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -368,7 +358,7 @@
             • Formato: <strong>MPEG-4 (.MP4)</strong> (${sizeMb} MB)<br>
             • Salvo no projeto em: <code>conecta-edu/docs/demonstracao_poc_1min.mp4</code><br>
             • Arquivo baixado automaticamente para a pasta de Downloads do seu Mac!<br>
-            • Explora 100% dos módulos: <strong>Aluno (Lucas) + Curadora (Carla) + Mobile PWA</strong>.
+            • Explora 100% dos módulos com layout idêntico à aplicação real!
           </div>
         `;
         document.getElementById('manualStopBtn').style.display = 'none';
@@ -379,17 +369,17 @@
     }
 
     // =========================================================================
-    // RENDERIZADOR GRÁFICO HD (1280x720)
+    // RENDERIZADOR GRÁFICO HD (1280x720) - LAYOUT FIEL À APLICAÇÃO REAL
     // =========================================================================
     function renderFrame(sec) {
-      // Fundo Base
-      ctx.fillStyle = '#0f172a';
+      // Fundo Base Idêntico ao do CSS (--bg-main: #f8fafc)
+      ctx.fillStyle = '#f8fafc';
       ctx.fillRect(0, 0, W, H);
 
       const step = TIMELINE.find(s => sec >= s.start && sec < s.end) || TIMELINE[0];
 
       // Barra de Navegador Superior Simulada
-      renderBrowserHeader(step.url, step.module);
+      renderBrowserBar(step.url, step.module);
 
       // Renderização do Conteúdo de Acordo com a Etapa
       if (sec < 8) {
@@ -412,64 +402,111 @@
       // Sublegendas sincronizadas na base
       renderSubtitles(step);
 
-      // Barra de Progresso no topo
+      // Barra de Progresso no topo da janela
       const pct = (sec / totalDuration) * W;
       ctx.fillStyle = '#f26522';
-      ctx.fillRect(0, 48, pct, 3);
+      ctx.fillRect(0, 36, pct, 3);
     }
 
-    // Cabeçalho de Navegador com URL ativa
-    function renderBrowserHeader(url, moduleName) {
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, 0, W, 48);
+    // Barra de Navegador Chrome no topo
+    function renderBrowserBar(url, moduleName) {
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, W, 36);
 
-      // Botões da janela (macOS)
+      // Bolinhas de controle
       ctx.fillStyle = '#ef4444';
-      ctx.beginPath(); ctx.arc(20, 24, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(16, 18, 5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#f59e0b';
-      ctx.beginPath(); ctx.arc(38, 24, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(32, 18, 5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#10b981';
-      ctx.beginPath(); ctx.arc(56, 24, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(48, 18, 5, 0, Math.PI * 2); ctx.fill();
 
-      // Barra de Endereço URL
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, 80, 10, 520, 28, 14, true);
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '12px monospace';
-      ctx.fillText('🔒 ' + url, 95, 28);
-
-      // Nome do Módulo em Destaque
-      ctx.fillStyle = '#f26522';
-      roundRect(ctx, W - 380, 10, 360, 28, 14, true);
+      // Campo de URL
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px system-ui';
-      ctx.fillText('▶ ' + moduleName, W - 365, 28);
+      drawBox(ctx, 68, 6, 440, 24, 12, true, '#cbd5e1', 1);
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px -apple-system, system-ui';
+      ctx.fillText('🔒 ' + url, 80, 22);
+
+      // Badge do Módulo
+      drawBox(ctx, W - 320, 6, 300, 24, 12, true, '#004587', 0, '#004587');
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px -apple-system, system-ui';
+      ctx.fillText('▶ ' + moduleName, W - 308, 22);
+    }
+
+    // Navbar Real da Aplicação ConectaEdu
+    function renderAppNavbar(isCurator = false) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 39, W, 56);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 94, W, 1);
+
+      // Logo CE
+      drawBox(ctx, 24, 47, 40, 40, 8, true, null, 0, '#004587');
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px system-ui';
+      ctx.fillText('CE', 33, 73);
+
+      // Título ConectaEdu
+      ctx.fillStyle = '#004587';
+      ctx.font = 'bold 18px system-ui';
+      ctx.fillText('ConectaEdu', 74, 65);
+      ctx.fillStyle = '#f26522';
+      ctx.font = 'bold 10px system-ui';
+      ctx.fillText(isCurator ? 'PAINEL DO CURADOR / DOCENTE' : 'SENAC SP • TADS 2026', 74, 80);
+
+      if (!isCurator) {
+        // Persona Badge: Lucas Mendes
+        drawBox(ctx, W / 2 - 120, 47, 240, 40, 20, true, '#e2e8f0', 1, '#f8fafc');
+        ctx.font = '20px system-ui';
+        ctx.fillText('👨‍💻', W / 2 - 108, 74);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 12px system-ui';
+        ctx.fillText('Lucas Mendes', W / 2 - 76, 64);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px system-ui';
+        ctx.fillText('Aluno ADS • 3º Período', W / 2 - 76, 78);
+
+        // Botão Visão Curador / Docente
+        drawBox(ctx, W - 220, 51, 196, 32, 6, true, '#e2e8f0', 1, '#ffffff');
+        ctx.font = '14px system-ui';
+        ctx.fillText('👩‍🏫', W - 208, 72);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 12px system-ui';
+        ctx.fillText('Visão Curador / Docente', W - 184, 72);
+      } else {
+        // Botão Voltar para Visão do Aluno
+        drawBox(ctx, W - 220, 51, 196, 32, 6, true, '#e2e8f0', 1, '#ffffff');
+        ctx.font = '14px system-ui';
+        ctx.fillText('👨‍💻', W - 208, 72);
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 12px system-ui';
+        ctx.fillText('Voltar para Visão do Aluno', W - 184, 72);
+      }
     }
 
     // 1. Abertura Institucional (00-08s)
     function renderScene1_Intro(sec) {
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#38bdf8';
+      ctx.fillStyle = '#004587';
       ctx.font = 'bold 15px system-ui';
-      ctx.fillText('CENTRO UNIVERSITÁRIO SENAC SP • TADS 2026', W / 2, 110);
+      ctx.fillText('CENTRO UNIVERSITÁRIO SENAC SP • TADS 2026', W / 2, 120);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 44px system-ui';
-      ctx.fillText('ConectaEdu • Prova de Conceito', W / 2, 165);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 42px system-ui';
+      ctx.fillText('ConectaEdu • Prova de Conceito', W / 2, 175);
 
-      ctx.fillStyle = '#94a3b8';
+      ctx.fillStyle = '#64748b';
       ctx.font = '18px system-ui';
-      ctx.fillText('Plataforma de Aprendizado Dinâmico e Interdisciplinar', W / 2, 205);
+      ctx.fillText('Plataforma de Aprendizado Dinâmico e Interdisciplinar', W / 2, 215);
 
       // Card da Equipe
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, W / 2 - 420, 245, 840, 190, 14, true);
-      ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.5;
-      roundRect(ctx, W / 2 - 420, 245, 840, 190, 14, false);
+      drawBox(ctx, W / 2 - 420, 255, 840, 200, 12, true, '#e2e8f0', 1, '#ffffff');
 
-      ctx.fillStyle = '#f59e0b';
+      ctx.fillStyle = '#f26522';
       ctx.font = 'bold 14px system-ui';
-      ctx.fillText('EQUIPE DE DESENVOLVIMENTO', W / 2, 280);
+      ctx.fillText('EQUIPE DE DESENVOLVIMENTO', W / 2, 290);
 
       const team = [
         { name: "Jonathan da Silva", role: "Backend & APIs" },
@@ -479,248 +516,293 @@
       ];
       team.forEach((m, i) => {
         const x = W / 2 - 315 + (i * 210);
-        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 15px system-ui'; ctx.fillText(m.name, x, 335);
-        ctx.fillStyle = '#94a3b8'; ctx.font = '12px system-ui'; ctx.fillText(m.role, x, 360);
+        ctx.fillStyle = '#0f172a'; ctx.font = 'bold 15px system-ui'; ctx.fillText(m.name, x, 345);
+        ctx.fillStyle = '#64748b'; ctx.font = '12px system-ui'; ctx.fillText(m.role, x, 370);
       });
 
-      ctx.fillStyle = '#38bdf8';
+      ctx.fillStyle = '#004587';
       ctx.font = 'italic 13px system-ui';
-      ctx.fillText('Orientador: Prof. Msc. Anderson Clayton Garcia Lopes', W / 2, 410);
+      ctx.fillText('Orientador: Prof. Msc. Anderson Clayton Garcia Lopes', W / 2, 420);
       ctx.textAlign = 'left';
     }
 
-    // 2. Módulo Aluno: Busca & Teoria (08-20s)
+    // 2. Módulo Aluno: Busca & Teoria (08-20s) - IDÊNTICO À IMAGEM 2
     function renderScene2_AlunoBusca(sec) {
-      renderAppNavbar('Lucas Mendes', 'Aluno ADS • 3º Período', '👨‍💻');
+      renderAppNavbar(false);
 
-      // Barra de busca interativa
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 60, 125, W - 120, 52, 26, true);
-      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
-      roundRect(ctx, 60, 125, W - 120, 52, 26, false);
+      // Hero Banner Escuro (#0f172a)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 95, W, 175);
 
-      ctx.font = '20px system-ui';
-      ctx.fillText('🔍', 80, 158);
+      ctx.textAlign = 'center';
+      // Badge marrom
+      drawBox(ctx, W / 2 - 140, 110, 280, 24, 12, true, 'rgba(242,101,34,0.4)', 1, 'rgba(242,101,34,0.2)');
+      ctx.fillStyle = '#ffedd5';
+      ctx.font = 'bold 11px system-ui';
+      ctx.fillText('PROVA DE CONCEITO FUNCIONAL (2ª ETAPA)', W / 2, 126);
+
+      // Título do Hero
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px system-ui';
+      ctx.fillText('Conecte a Teoria Acadêmica com a Prática do Mercado', W / 2, 160);
+
+      // Subtítulo
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '13px system-ui';
+      ctx.fillText('Elimine a fragmentação entre disciplinas. Descubra como Banco de Dados, APIs e Mobile se integram em projetos reais.', W / 2, 185);
+
+      // Barra de Busca do Hero
+      drawBox(ctx, W / 2 - 300, 202, 600, 42, 21, true, '#334155', 2, '#1e293b');
+      ctx.font = '16px system-ui';
+      ctx.fillText('🔍', W / 2 - 280, 228);
 
       const fullTxt = "Modelagem de Banco de Dados Relacional";
       const p = Math.min(1, (sec - 8) / 3.5);
       const sub = fullTxt.substring(0, Math.floor(p * fullTxt.length));
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 17px system-ui';
-      ctx.fillText(sub + (Math.floor(sec * 4) % 2 === 0 ? '|' : ''), 115, 158);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '14px system-ui';
+      ctx.fillText(sub + (Math.floor(sec * 4) % 2 === 0 ? '|' : ''), W / 2 - 250, 228);
 
-      // Col 1: Tópicos
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 60, 195, 270, 360, 10, true);
-      ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 12px system-ui';
-      ctx.fillText('TÓPICOS DO CURSO', 80, 225);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px system-ui';
+      ctx.fillText('Sugestões da Jornada: Banco Relacional • Integração ORM • APIs REST', W / 2, 260);
+      ctx.textAlign = 'left';
 
-      const items = [
-        { t: "Modelagem Relacional", s: "A Fazer", active: true },
-        { t: "Integração ORM", s: "A Fazer", active: false },
-        { t: "APIs RESTful", s: "A Fazer", active: false },
-        { t: "Padrões MVC", s: "A Fazer", active: false }
-      ];
-      items.forEach((it, i) => {
-        const y = 245 + (i * 70);
-        ctx.fillStyle = it.active ? '#0369a1' : '#334155';
-        roundRect(ctx, 75, y, 240, 56, 8, true);
-        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px system-ui';
-        ctx.fillText(it.t, 88, y + 25);
-        ctx.fillStyle = '#94a3b8'; ctx.font = '11px system-ui';
-        ctx.fillText('Status: ' + it.s, 88, y + 43);
+      // Barra de Filtros
+      const filters = ["Todas as Matérias", "Banco de Dados", "Programação Web", "Engenharia de Software", "Mobile & PWA"];
+      let fx = 24;
+      filters.forEach((f, i) => {
+        const isActive = i === 0;
+        const fw = ctx.measureText(f).width + 30;
+        drawBox(ctx, fx, 280, fw, 28, 14, true, isActive ? '#004587' : '#e2e8f0', 1, isActive ? '#004587' : '#ffffff');
+        ctx.fillStyle = isActive ? '#ffffff' : '#64748b';
+        ctx.font = 'bold 11px system-ui';
+        ctx.fillText(f, fx + 15, 298);
+        fx += fw + 10;
       });
 
-      // Col 2: Detalhe Teórico & Código SQL
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 350, 195, 520, 360, 10, true);
-      ctx.fillStyle = '#0284c7'; roundRect(ctx, 375, 215, 75, 22, 6, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px system-ui'; ctx.fillText('TADS301', 386, 230);
+      // Layout de 3 Colunas Real
+      // Col 1: Tópicos Curriculares
+      drawBox(ctx, 24, 320, 260, 310, 10, true, '#e2e8f0', 1, '#ffffff');
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px system-ui'; ctx.fillText('TÓPICOS CURRICULARES', 40, 345);
+      ctx.fillStyle = '#0284c7'; ctx.font = 'bold 11px system-ui'; ctx.fillText('5 TÓPICOS', 210, 345);
 
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px system-ui';
-      ctx.fillText('Modelagem de Banco de Dados Relacional', 375, 265);
+      const topics = [
+        { t: "Modelagem Relacional", d: "TADS301", active: true },
+        { t: "Integração ORM", d: "TADS302", active: false },
+        { t: "APIs RESTful", d: "TADS302", active: false },
+        { t: "Mobile & Cache Offline", d: "TADS401", active: false }
+      ];
+      topics.forEach((it, i) => {
+        const ty = 365 + (i * 62);
+        drawBox(ctx, 36, ty, 236, 52, 6, true, it.active ? '#0284c7' : '#f1f5f9', 1, it.active ? '#e0f2fe' : '#ffffff');
+        ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px system-ui'; ctx.fillText(it.t, 48, ty + 22);
+        ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui'; ctx.fillText(it.d + ' • Modelagem de Dados', 48, ty + 38);
+      });
 
-      ctx.fillStyle = '#cbd5e1'; ctx.font = '13px system-ui';
-      ctx.fillText('Conceito Teórico: Formas Normais (1FN, 2FN, 3FN), cardinalidade 1:N e chaves.', 375, 295);
+      // Col 2: Detalhe do Tópico (SQL DDL)
+      drawBox(ctx, 300, 320, 560, 310, 10, true, '#e2e8f0', 1, '#ffffff');
+      drawBox(ctx, 320, 335, 75, 22, 4, true, null, 0, '#0284c7');
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px system-ui'; ctx.fillText('TADS301', 332, 350);
+      ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui'; ctx.fillText('⏱️ 45 min estimados', 405, 350);
+
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 19px system-ui';
+      ctx.fillText('Modelagem de Banco de Dados Relacional', 320, 385);
+
+      // Bloco Teórico
+      drawBox(ctx, 320, 400, 520, 60, 4, true, '#0284c7', 0, '#f8fafc');
+      ctx.fillStyle = '#0284c7'; ctx.fillRect(320, 400, 4, 60);
+      ctx.fillStyle = '#334155'; ctx.font = '12px system-ui';
+      ctx.fillText('Estudo formal de tabelas, chaves primárias e relacionamentos (1:1, 1:N, N:N).', 335, 425);
+      ctx.fillText('Aplicação das Formas Normais (1FN, 2FN e 3FN) para evitar redundâncias.', 335, 445);
 
       // Bloco de Código SQL
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, 375, 315, 470, 140, 8, true);
+      drawBox(ctx, 320, 470, 520, 140, 8, true, '#1e293b', 1, '#0f172a');
       ctx.fillStyle = '#38bdf8'; ctx.font = '12px monospace';
-      ctx.fillText('-- DDL SQL ANSI Relacional', 395, 340);
+      ctx.fillText('-- DDL SQL Relacional', 340, 495);
       ctx.fillStyle = '#f8fafc';
-      ctx.fillText('CREATE TABLE alunos (', 395, 368);
-      ctx.fillText('  id INT PRIMARY KEY AUTO_INCREMENT,', 395, 392);
-      ctx.fillText('  nome VARCHAR(100) NOT NULL, email VARCHAR(120));', 395, 416);
+      ctx.fillText('CREATE TABLE alunos (', 340, 520);
+      ctx.fillText('  id INTEGER PRIMARY KEY AUTOINCREMENT,', 340, 545);
+      ctx.fillText('  nome VARCHAR(100) NOT NULL, email VARCHAR(120));', 340, 570);
 
-      // Col 3: Dúvida de Lucas
-      ctx.fillStyle = '#f59e0b';
-      roundRect(ctx, 890, 195, 330, 360, 10, true);
-      ctx.fillStyle = '#78350f'; ctx.font = 'bold 16px system-ui';
-      ctx.fillText('🤔 Dúvida da Persona:', 915, 235);
-      ctx.font = 'italic 14px system-ui';
-      ctx.fillText('"Como esse CREATE TABLE relacional', 915, 275);
-      ctx.fillText('se conecta com as APIs que estou', 915, 305);
-      ctx.fillText('criando na outra matéria?"', 915, 335);
-      ctx.fillStyle = '#b45309'; ctx.font = 'bold 13px system-ui';
-      ctx.fillText('➔ Acionando recomendação...', 915, 400);
+      // Col 3: Conteúdos Correlatos Box
+      drawBox(ctx, 876, 320, 380, 310, 10, true, '#bae6fd', 2, '#ffffff');
+      // Barra gradiente superior
+      ctx.fillStyle = '#f26522'; ctx.fillRect(876, 320, 380, 4);
+
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 14px system-ui'; ctx.fillText('🔗 Conteúdos Correlatos', 895, 348);
+      drawBox(ctx, 1130, 335, 110, 20, 10, true, null, 0, '#e0f2fe');
+      ctx.fillStyle = '#0369a1'; ctx.font = 'bold 9px system-ui'; ctx.fillText('INTERDISCIPLINAR', 1140, 349);
+
+      // Card do Correlato
+      drawBox(ctx, 895, 370, 342, 240, 8, true, '#e2e8f0', 1, '#f8fafc');
+      ctx.fillStyle = '#f26522'; ctx.font = 'bold 11px system-ui'; ctx.fillText('➡️ PRÁTICA APLICADA NO MERCADO', 910, 395);
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 15px system-ui'; ctx.fillText('Integração ORM em Aplicações Web', 910, 420);
+      ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui'; ctx.fillText('TADS302 • Programação Web e Serviços', 910, 440);
+
+      drawBox(ctx, 910, 455, 312, 75, 4, true, '#f26522', 0, '#ffffff');
+      ctx.fillStyle = '#f26522'; ctx.fillRect(910, 455, 3, 75);
+      ctx.fillStyle = '#334155'; ctx.font = '11px system-ui';
+      ctx.fillText('Ponte: A tabela SQL vira um Model', 925, 475);
+      ctx.fillText('no Prisma ORM para a API Express!', 925, 495);
+
+      drawBox(ctx, 910, 545, 312, 42, 6, true, null, 0, '#004587');
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px system-ui';
+      ctx.fillText('Explorar Conexão Prática ➔', 975, 571);
     }
 
-    // 3. Módulo Aluno: Conteúdos Correlatos (20-32s)
+    // 3. Módulo Aluno: Transposição Prática (20-32s)
     function renderScene3_AlunoCorrelatos(sec) {
-      renderAppNavbar('Lucas Mendes', 'Aluno ADS • 3º Período', '👨‍💻');
+      renderAppNavbar(false);
 
-      // Painel Dividido: Origem Teórica vs Destino Prático
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 60, 120, 520, 440, 12, true);
-      ctx.fillStyle = '#0284c7'; ctx.font = 'bold 14px system-ui';
-      ctx.fillText('TEORIA ISOLADA: BANCO DE DADOS', 85, 155);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px system-ui';
-      ctx.fillText('Tabelas e Chaves Estrangeiras (SQL)', 85, 190);
+      // Layout Exibindo a Transposição de SQL para Prisma ORM e Express
+      drawBox(ctx, 24, 115, 600, 515, 10, true, '#e2e8f0', 1, '#ffffff');
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 14px system-ui'; ctx.fillText('DISCIPLINA: BANCO DE DADOS (TEORIA)', 45, 145);
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 20px system-ui'; ctx.fillText('Esquema Relacional DDL', 45, 175);
 
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, 85, 220, 470, 300, 8, true);
-      ctx.fillStyle = '#38bdf8'; ctx.font = '12px monospace';
-      ctx.fillText('-- Esquema Relacional DDL', 105, 255);
+      drawBox(ctx, 45, 195, 558, 410, 8, true, '#1e293b', 1, '#0f172a');
+      ctx.fillStyle = '#38bdf8'; ctx.font = '13px monospace';
+      ctx.fillText('-- Modelo no SQLite / PostgreSQL', 65, 230);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillText('CREATE TABLE alunos (', 105, 290);
-      ctx.fillText('  id INT PRIMARY KEY,', 105, 320);
-      ctx.fillText('  nome VARCHAR(100) NOT NULL', 105, 350);
-      ctx.fillText(');', 105, 380);
+      ctx.fillText('CREATE TABLE alunos (', 65, 270);
+      ctx.fillText('  id INTEGER PRIMARY KEY,', 65, 305);
+      ctx.fillText('  nome VARCHAR(100) NOT NULL,', 65, 340);
+      ctx.fillText('  email VARCHAR(120) UNIQUE NOT NULL', 65, 375);
+      ctx.fillText(');', 65, 410);
 
-      // Conector Interdisciplinar Central
-      ctx.fillStyle = '#f26522';
-      ctx.font = 'bold 36px system-ui';
-      ctx.fillText('➔', 605, 330);
+      // Seta Conectora Central
+      ctx.fillStyle = '#f26522'; ctx.font = 'bold 36px system-ui'; ctx.fillText('➔', 635, 380);
 
-      // Card do Conteúdo Correlato (O Diferencial da PoC)
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 660, 120, 560, 440, 12, true);
-      ctx.strokeStyle = '#f26522'; ctx.lineWidth = 3.5;
-      roundRect(ctx, 660, 120, 560, 440, 12, false);
+      // Card Direito: ORM e API REST
+      drawBox(ctx, 656, 115, 600, 515, 10, true, '#f26522', 2, '#ffffff');
+      ctx.fillStyle = '#f26522'; ctx.font = 'bold 14px system-ui'; ctx.fillText('APLICAÇÃO PRÁTICA NO MERCADO (POC)', 680, 145);
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 20px system-ui'; ctx.fillText('Model Prisma + API REST Express', 680, 175);
 
-      ctx.fillStyle = '#f26522'; ctx.font = 'bold 13px system-ui';
-      ctx.fillText('🔗 CONTEÚDO CORRELATO RECOMENDADO', 690, 155);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px system-ui';
-      ctx.fillText('Integração ORM em Aplicações Web', 690, 190);
-
-      ctx.fillStyle = '#fef08a'; ctx.font = '13px system-ui';
-      ctx.fillText('Ponte: A tabela vira Model no Prisma e é injetada na API Express!', 690, 220);
-
-      // Bloco de Código ORM + Express
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, 690, 240, 500, 220, 8, true);
-      ctx.fillStyle = '#10b981'; ctx.font = '12px monospace';
-      ctx.fillText('// Backend Node.js com Prisma ORM', 710, 270);
+      drawBox(ctx, 680, 195, 552, 410, 8, true, '#1e293b', 1, '#0f172a');
+      ctx.fillStyle = '#10b981'; ctx.font = '13px monospace';
+      ctx.fillText('// Backend Node.js com Prisma ORM', 705, 230);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillText('const aluno = await prisma.aluno.create({', 710, 305);
-      ctx.fillText('  data: { nome, email }', 710, 335);
-      ctx.fillText('});', 710, 365);
+      ctx.fillText('model Aluno {', 705, 270);
+      ctx.fillText('  id    Int    @id @default(autoincrement())', 705, 305);
+      ctx.fillText('  nome  String', 705, 340);
+      ctx.fillText('  email String @unique', 705, 375);
+      ctx.fillText('}', 705, 410);
       ctx.fillStyle = '#38bdf8';
-      ctx.fillText('app.get("/alunos", (req, res) => res.json(aluno));', 710, 405);
-
-      // Botão Explorar
-      ctx.fillStyle = '#004587';
-      roundRect(ctx, 690, 480, 500, 52, 8, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px system-ui';
-      ctx.fillText('Explorar Conexão Prática ➔', 835, 512);
+      ctx.fillText('app.get("/alunos", async (req, res) => {', 705, 460);
+      ctx.fillText('  const alunos = await prisma.aluno.findMany();', 705, 495);
+      ctx.fillText('  res.json(alunos);', 705, 530);
+      ctx.fillText('});', 705, 565);
     }
 
-    // 4. Módulo Aluno: Progresso & SQLite (32-42s)
+    // 4. Módulo Aluno: Status no SQLite & Progresso (32-42s)
     function renderScene4_AlunoProgresso(sec) {
-      renderAppNavbar('Lucas Mendes', 'Aluno ADS • 3º Período', '👨‍💻');
+      renderAppNavbar(false);
 
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 100, 120, W - 200, 440, 14, true);
+      drawBox(ctx, 100, 120, W - 200, 500, 12, true, '#e2e8f0', 1, '#ffffff');
 
-      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 15px system-ui';
-      ctx.fillText('ACOMPANHAMENTO INDIVIDUAL DE APRENDIZADO', 140, 165);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 24px system-ui';
-      ctx.fillText('Trilha: Integração ORM em Aplicações Web', 140, 205);
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 14px system-ui';
+      ctx.fillText('ACOMPANHAMENTO INDIVIDUAL DE APRENDIZADO', 140, 160);
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 24px system-ui';
+      ctx.fillText('Trilha: Integração ORM em Aplicações Web', 140, 200);
 
       // Botões de Status
-      ctx.fillStyle = '#334155'; roundRect(ctx, 140, 240, 140, 45, 8, true);
-      ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 14px system-ui'; ctx.fillText('A Fazer', 180, 268);
+      drawBox(ctx, 140, 235, 130, 42, 6, true, '#cbd5e1', 1, '#f1f5f9');
+      ctx.fillStyle = '#475569'; ctx.font = 'bold 13px system-ui'; ctx.fillText('A Fazer', 178, 261);
 
-      ctx.fillStyle = '#d97706'; roundRect(ctx, 295, 240, 160, 45, 8, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 14px system-ui'; ctx.fillText('Em Andamento', 320, 268);
+      drawBox(ctx, 285, 235, 150, 42, 6, true, '#f59e0b', 1, '#fef3c7');
+      ctx.fillStyle = '#b45309'; ctx.font = 'bold 13px system-ui'; ctx.fillText('Em Andamento', 315, 261);
 
-      // Status Concluído com Destaque
-      ctx.fillStyle = '#059669'; roundRect(ctx, 470, 240, 160, 45, 8, true);
-      ctx.strokeStyle = '#34d399'; ctx.lineWidth = 3;
-      roundRect(ctx, 470, 240, 160, 45, 8, false);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 15px system-ui'; ctx.fillText('✓ Concluído', 505, 268);
+      // Concluído Ativo
+      drawBox(ctx, 450, 235, 150, 42, 6, true, '#10b981', 2, '#d1fae5');
+      ctx.fillStyle = '#047857'; ctx.font = 'bold 13px system-ui'; ctx.fillText('✓ Concluído', 485, 261);
 
-      ctx.fillStyle = '#10b981'; ctx.font = 'bold 14px system-ui';
-      ctx.fillText('✓ Status sincronizado no banco relacional SQLite3', 660, 268);
+      ctx.fillStyle = '#059669'; ctx.font = 'bold 13px system-ui';
+      ctx.fillText('✓ Status sincronizado no banco relacional SQLite3', 625, 261);
 
-      // Barra de Progresso Animada
+      // Barra de Progresso
       const p = Math.min(1, (sec - 32) / 6);
-      const fillW = p * (W - 280);
+      drawBox(ctx, 140, 315, W - 280, 24, 12, true, null, 0, '#e2e8f0');
+      drawBox(ctx, 140, 315, (W - 280) * p, 24, 12, true, null, 0, '#10b981');
 
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, 140, 325, W - 280, 26, 13, true);
-      ctx.fillStyle = '#10b981';
-      roundRect(ctx, 140, 325, fillW, 26, 13, true);
-
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px system-ui';
-      ctx.fillText(`Progresso na Trilha: ${Math.round(p * 100)}% CONCLUÍDO`, 140, 390);
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 17px system-ui';
+      ctx.fillText(`Progresso na Trilha: ${Math.round(p * 100)}% CONCLUÍDO`, 140, 375);
+      ctx.fillStyle = '#64748b'; ctx.font = '13px system-ui';
+      ctx.fillText('Total de tópicos concluídos: 4 de 4', 140, 400);
 
       // Favoritos e Compartilhamento
       ctx.fillStyle = '#f59e0b'; ctx.font = '28px system-ui';
-      ctx.fillText('⭐ Trilha Salva nos Favoritos!', 140, 445);
+      ctx.fillText('⭐', 140, 455);
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 15px system-ui';
+      ctx.fillText('Trilha favoritada com sucesso no perfil do Lucas!', 180, 455);
 
-      ctx.fillStyle = '#0284c7'; roundRect(ctx, 140, 470, 360, 45, 8, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 14px system-ui';
-      ctx.fillText('🔗 Compartilhado com o Grupo de Trabalho', 165, 498);
+      drawBox(ctx, 140, 485, 420, 44, 6, true, '#004587', 0, '#004587');
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px system-ui';
+      ctx.fillText('🔗 Link da Trilha Copiado para o Grupo de Projeto', 180, 512);
     }
 
-    // 5. Módulo Curador / Docente: Prof.ª Carla (42-54s)
+    // 5. Módulo Curador / Docente: Prof.ª Carla (42-54s) - IDÊNTICO AO CURATOR.HTML
     function renderScene5_CuradorCarla(sec) {
-      renderAppNavbar('Prof.ª Dra. Carla Silveira', 'Coordenadora & Curadora Docente', '👩‍🏫');
+      renderAppNavbar(true);
 
-      // Card de Perfil da Curadora
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 60, 120, W - 120, 80, 12, true);
-      ctx.font = '36px system-ui'; ctx.fillText('👩‍🏫', 85, 172);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px system-ui';
-      ctx.fillText('Painel de Curadoria de Trilhas Interdisciplinares', 140, 153);
-      ctx.fillStyle = '#94a3b8'; ctx.font = '13px system-ui';
-      ctx.fillText('Estruturação de novas pontes no grafo pedagógico do Senac SP', 140, 178);
+      // Header Card da Curadora
+      drawBox(ctx, 50, 115, W - 100, 75, 10, true, '#e2e8f0', 1, '#ffffff');
 
-      // Formulário de Mapeamento de Nova Conexão
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 60, 215, 540, 345, 12, true);
-      ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 15px system-ui';
-      ctx.fillText('➕ Mapear Nova Ponte no Grafo', 85, 248);
+      // Avatar com borda laranja (#f26522)
+      drawBox(ctx, 70, 128, 50, 50, 25, true, '#f26522', 2, '#f1f5f9');
+      ctx.font = '26px system-ui'; ctx.fillText('👩‍🏫', 82, 163);
 
-      // Campos do Form
-      drawField(85, 270, 490, "Tópico Teórico de Origem:", "TADS301 - Modelagem de Banco de Dados");
-      drawField(85, 335, 490, "Tópico Prático de Destino:", "TADS302 - Integração ORM em Aplicações Web");
-      drawField(85, 400, 490, "Tipo de Relação Pedagógica:", "Prática Aplicada no Mercado");
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 18px system-ui';
+      ctx.fillText('Prof.ª Dra. Carla Silveira', 135, 147);
+      ctx.fillStyle = '#64748b'; ctx.font = '12px system-ui';
+      ctx.fillText('Coordenadora Acadêmica e Curadora de Trilhas • Senac SP', 135, 168);
 
-      ctx.fillStyle = '#059669'; roundRect(ctx, 85, 480, 490, 44, 8, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 14px system-ui';
-      ctx.fillText('✓ Salvar Conexão Interdisciplinar', 215, 507);
+      drawBox(ctx, W - 320, 138, 250, 28, 14, true, 'rgba(242,101,34,0.4)', 1, 'rgba(242,101,34,0.2)');
+      ctx.fillStyle = '#b45309'; ctx.font = 'bold 11px system-ui';
+      ctx.fillText('MÓDULO DE CURADORIA DE CONTEÚDO', W - 305, 156);
 
-      // Tabela de Conexões Ativas
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 620, 215, 600, 345, 12, true);
-      ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 15px system-ui';
-      ctx.fillText('🕸️ Conexões Ativas no Grafo', 645, 248);
+      // Formulário para Mapear Nova Ponte Interdisciplinar
+      drawBox(ctx, 50, 205, 560, 425, 10, true, '#e2e8f0', 1, '#ffffff');
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 15px system-ui';
+      ctx.fillText('➕ Mapear Nova Ponte Interdisciplinar', 70, 235);
+      ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui';
+      ctx.fillText('Crie conexões entre matérias teóricas e práticas para os alunos.', 70, 255);
 
-      const tableRows = [
+      drawField(70, 275, 520, "Tópico Teórico de Origem:", "TADS301 - Modelagem de Banco de Dados");
+      drawField(70, 340, 520, "Tópico Prático de Destino (Conexão):", "TADS302 - Integração ORM em Aplicações Web");
+      drawField(70, 405, 520, "Tipo de Relação Interdisciplinar:", "Prática Aplicada no Mercado");
+      drawField(70, 470, 520, "Justificativa da Conexão:", "Mapeia entidades relacionais diretamente em Models Prisma.");
+
+      drawBox(ctx, 70, 560, 520, 42, 6, true, null, 0, '#004587');
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px system-ui';
+      ctx.fillText('Salvar Conexão Interdisciplinar', 230, 586);
+
+      // Tabela de Pontes Interdisciplinares Ativas
+      drawBox(ctx, 630, 205, 600, 425, 10, true, '#e2e8f0', 1, '#ffffff');
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 15px system-ui';
+      ctx.fillText('🕸️ Pontes Interdisciplinares Ativas no Sistema', 650, 235);
+      ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui';
+      ctx.fillText('Conexões atualmente recomendadas pelo algoritmo do ConectaEdu.', 650, 255);
+
+      // Cabeçalho da Tabela
+      drawBox(ctx, 650, 275, 560, 32, 4, true, null, 0, '#f8fafc');
+      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 11px system-ui';
+      ctx.fillText('Origem', 665, 295);
+      ctx.fillText('Destino (Conexão)', 800, 295);
+      ctx.fillText('Tipo', 980, 295);
+
+      const rows = [
         { orig: "BD Relacional", dest: "ORM Web", tipo: "Prática Aplicada" },
         { orig: "ORM Web", dest: "APIs RESTful", tipo: "Integração Camada" },
-        { orig: "APIs RESTful", dest: "Mobile & PWA", tipo: "Consumo de Serviço" },
+        { orig: "APIs RESTful", dest: "Mobile PWA", tipo: "Consumo de Serviço" },
         { orig: "Padrões MVC", dest: "APIs RESTful", tipo: "Arquitetural" }
       ];
-      tableRows.forEach((r, i) => {
-        const y = 280 + (i * 60);
-        ctx.fillStyle = '#0f172a'; roundRect(ctx, 645, y, 550, 48, 6, true);
-        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px system-ui';
-        ctx.fillText(r.orig + ' ➔ ' + r.dest, 665, y + 28);
-        ctx.fillStyle = '#f59e0b'; ctx.font = '11px system-ui';
-        ctx.fillText(r.tipo, 1050, y + 28);
+      rows.forEach((r, i) => {
+        const ry = 315 + (i * 65);
+        ctx.fillStyle = '#e2e8f0'; ctx.fillRect(650, ry + 55, 560, 1);
+        ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px system-ui'; ctx.fillText(r.orig, 665, ry + 25);
+        ctx.fillStyle = '#0f172a'; ctx.fillText(r.dest, 800, ry + 25);
+        drawBox(ctx, 980, ry + 10, 120, 22, 11, true, null, 0, '#fef3c7');
+        ctx.fillStyle = '#b45309'; ctx.font = 'bold 10px system-ui'; ctx.fillText(r.tipo, 995, ry + 25);
       });
     }
 
@@ -729,84 +811,82 @@
       ctx.textAlign = 'center';
 
       // Mockup de Smartphone
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, W / 2 - 130, 95, 260, 430, 24, true);
-      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3;
-      roundRect(ctx, W / 2 - 130, 95, 260, 430, 24, false);
+      drawBox(ctx, W / 2 - 120, 95, 240, 420, 24, true, '#004587', 3, '#0f172a');
 
       // Tela do Celular
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, W / 2 - 118, 120, 236, 380, 16, true);
-      ctx.fillStyle = '#0284c7';
-      roundRect(ctx, W / 2 - 105, 135, 210, 36, 8, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px system-ui';
+      drawBox(ctx, W / 2 - 108, 120, 216, 370, 16, true, null, 0, '#ffffff');
+      drawBox(ctx, W / 2 - 95, 135, 190, 36, 6, true, null, 0, '#004587');
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px system-ui';
       ctx.fillText('ConectaEdu Mobile PWA', W / 2, 158);
 
-      ctx.fillStyle = '#10b981';
-      roundRect(ctx, W / 2 - 105, 185, 210, 45, 8, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px system-ui';
-      ctx.fillText('✓ Modo Offline (Service Worker)', W / 2, 212);
+      drawBox(ctx, W / 2 - 95, 185, 190, 45, 6, true, null, 0, '#d1fae5');
+      ctx.fillStyle = '#047857'; ctx.font = 'bold 11px system-ui';
+      ctx.fillText('✓ Modo Offline Ativo (SW)', W / 2, 212);
 
-      ctx.fillStyle = '#cbd5e1'; ctx.font = '10px system-ui';
-      ctx.fillText('Estude no ônibus/metrô', W / 2, 255);
-      ctx.fillText('Sincronização automática com a nuvem', W / 2, 275);
+      ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui';
+      ctx.fillText('Estudos no transporte público', W / 2, 255);
+      ctx.fillText('Cache local e sincronização', W / 2, 275);
 
       // Título Final
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 32px system-ui';
-      ctx.fillText('ConectaEdu • PoC Concluída com Sucesso!', W / 2, 570);
+      ctx.fillStyle = '#004587'; ctx.font = 'bold 30px system-ui';
+      ctx.fillText('ConectaEdu • PoC Concluída com Sucesso!', W / 2, 560);
 
-      ctx.fillStyle = '#10b981'; ctx.font = 'bold 16px system-ui';
-      ctx.fillText('✓ Nota 10: 100% das Rubricas do Senac SP Atendidas', W / 2, 605);
+      ctx.fillStyle = '#059669'; ctx.font = 'bold 15px system-ui';
+      ctx.fillText('✓ Nota 10: 100% das Rubricas do Senac SP Atendidas', W / 2, 595);
 
-      ctx.fillStyle = '#94a3b8'; ctx.font = '13px system-ui';
-      ctx.fillText('Jonathan Cavalcanti • Renan Coelho • Tiago Canalli • Vanessa Kolbe • 2026', W / 2, 635);
+      ctx.fillStyle = '#64748b'; ctx.font = '12px system-ui';
+      ctx.fillText('Jonathan Cavalcanti • Renan Coelho • Tiago Canalli • Vanessa Kolbe • 2026', W / 2, 625);
       ctx.textAlign = 'left';
     }
 
-    // Auxiliares Visuais
-    function renderAppNavbar(personaName, personaRole, avatar) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 50, W, 58);
+    // Auxiliares de Desenho Matemático Preciso
+    function drawBox(ctx, x, y, w, h, r, fill, strokeColor, strokeWidth, fillColor) {
+      if (fillColor) ctx.fillStyle = fillColor;
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeWidth || 1;
+      }
+      
+      // Uso de roundRect nativo do navegador para eliminar qualquer quebra de curva
+      if (typeof ctx.roundRect === 'function') {
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, r);
+        if (fill) ctx.fill();
+        if (strokeColor) ctx.stroke();
+        return;
+      }
 
-      // Logo
-      ctx.fillStyle = '#004587';
-      roundRect(ctx, 60, 60, 38, 38, 8, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px system-ui'; ctx.fillText('CE', 70, 85);
-
-      ctx.fillStyle = '#004587'; ctx.font = 'bold 19px system-ui'; ctx.fillText('ConectaEdu', 108, 77);
-      ctx.fillStyle = '#f26522'; ctx.font = '10px system-ui'; ctx.fillText('SENAC SP • TADS 2026', 108, 92);
-
-      // Persona Badge
-      ctx.fillStyle = '#f8fafc';
-      roundRect(ctx, W - 320, 58, 260, 42, 21, true);
-      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
-      roundRect(ctx, W - 320, 58, 260, 42, 21, false);
-
-      ctx.font = '22px system-ui'; ctx.fillText(avatar, W - 305, 87);
-      ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px system-ui'; ctx.fillText(personaName, W - 268, 76);
-      ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui'; ctx.fillText(personaRole, W - 268, 91);
+      // Fallback robusto com arcTo
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (strokeColor) ctx.stroke();
     }
 
     function drawField(x, y, w, label, val) {
-      ctx.fillStyle = '#94a3b8'; ctx.font = '11px system-ui';
+      ctx.fillStyle = '#475569'; ctx.font = 'bold 11px system-ui';
       ctx.fillText(label, x, y);
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, x, y + 6, w, 32, 6, true);
-      ctx.fillStyle = '#ffffff'; ctx.font = '12px system-ui';
+      drawBox(ctx, x, y + 6, w, 32, 6, true, '#cbd5e1', 1, '#f8fafc');
+      ctx.fillStyle = '#0f172a'; ctx.font = '12px system-ui';
       ctx.fillText(val, x + 12, y + 27);
     }
 
     function renderMouseCursor(sec) {
       let mx = 400, my = 300;
       if (sec < 20) {
-        mx = 200 + Math.sin(sec * 2) * 50;
-        my = 150 + Math.cos(sec * 2) * 10;
+        mx = W / 2 - 200 + Math.sin(sec * 2) * 50;
+        my = 230 + Math.cos(sec * 2) * 5;
       } else if (sec < 32) {
-        mx = 940; my = 505; // Clicando em Explorar Conexão Prática
+        mx = 1000; my = 565; // Clicando em Explorar Conexão Prática
       } else if (sec < 42) {
-        mx = 550; my = 262; // Clicando em Concluído
+        mx = 525; my = 256; // Clicando em Concluído
       } else if (sec < 54) {
-        mx = 330; my = 502; // Clicando em Salvar Conexão Curador
+        mx = 330; my = 580; // Clicando em Salvar Conexão Curador
       } else {
         mx = W / 2; my = 200;
       }
@@ -814,41 +894,22 @@
       ctx.fillStyle = '#f26522';
       ctx.beginPath();
       ctx.moveTo(mx, my);
-      ctx.lineTo(mx + 16, my + 16);
-      ctx.lineTo(mx + 6, my + 16);
-      ctx.lineTo(mx, my + 24);
+      ctx.lineTo(mx + 15, my + 15);
+      ctx.lineTo(mx + 6, my + 15);
+      ctx.lineTo(mx, my + 22);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
     }
 
     function renderSubtitles(step) {
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-      roundRect(ctx, 50, H - 75, W - 100, 62, 8, true);
-      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.5;
-      roundRect(ctx, 50, H - 75, W - 100, 62, 8, false);
+      drawBox(ctx, 50, H - 75, W - 100, 62, 8, true, '#004587', 1.5, 'rgba(15, 23, 42, 0.95)');
 
       ctx.fillStyle = '#f59e0b'; ctx.font = 'bold 11px system-ui';
       ctx.fillText(`LOCUÇÃO [${step.module.toUpperCase()}]:`, 70, H - 54);
 
       ctx.fillStyle = '#ffffff'; ctx.font = '14px system-ui';
       ctx.fillText(`"${step.speech}"`, 70, H - 28);
-    }
-
-    function roundRect(ctx, x, y, width, height, radius, fill) {
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + width - radius, y);
-      ctx.quadraticCurveTo(x + width, y + width, x + width, y + radius);
-      ctx.lineTo(x + width, y + height - radius);
-      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      ctx.lineTo(x + radius, y + height);
-      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-      if (fill) ctx.fill();
-      else ctx.stroke();
     }
   </script>
 </body>
