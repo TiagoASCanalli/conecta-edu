@@ -201,39 +201,6 @@ O servidor inicializa o banco SQLite3 automaticamente e estará acessível em:
 
 ---
 
-## 📦 6. Como Publicar no seu GitHub
-
-Para enviar este repositório para o GitHub do seu grupo no Senac:
-
-```bash
-# 1. Navegue até a pasta do projeto
-cd /Users/tiagocanalli/.gemini/antigravity/scratch/conecta-edu
-
-# 2. Conecte o repositório remoto do seu GitHub
-git remote add origin https://github.com/SEU_USUARIO/conecta-edu.git
-
-# 3. Garanta que a branch principal é a main
-git branch -M main
-
-# 4. Envie todo o código, documentação e vídeo
-git push -u origin main
-```
-
-> [!NOTE]
-> Adicione os membros da equipe (**Jonathan, Renan, Vanessa**) como colaboradores no GitHub em:  
-> *Settings ➔ Collaborators ➔ Add people*.
-
----
-
-## 📚 7. Referências Bibliográficas
-
-- PRESSMAN, Roger S.; MAXIM, Bruce R. *Engenharia de software: uma abordagem profissional*. 9. ed. Porto Alegre: AMGH, 2021.
-- SOMMERVILLE, Ian. *Engenharia de software*. 10. ed. São Paulo: Pearson Education do Brasil, 2019.
-- VAZQUEZ, Carlos Eduardo; SIMÕES, Guilherme Siqueira. *Engenharia de requisitos: software orientado ao negócio*. Rio de Janeiro: Brasport, 2016.
-- BRASIL. Ministério da Educação. *Base Nacional Comum Curricular (BNCC)*. Brasília: MEC, 2018.
-
----
-
 <p align="center">
   <strong>Centro Universitário Senac SP • Projeto Integrador TADS 2026</strong><br>
   Desenvolvido com dedicação por Jonathan Cavalcanti, Renan Duarte, Tiago Canalli e Vanessa Kolbe.
