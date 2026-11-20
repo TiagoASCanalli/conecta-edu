@@ -39,7 +39,7 @@
 | **2. Preparação do Ambiente** | **2,0 pts** | Estruturação da Stack (Frontend, Backend, Banco de Dados e ambiente de execução documentado). | Stack completa documentada, suporte duplo a **Node.js (Express)** e runner nativo **Ruby (WEBrick)** com zero dependências externas. | [`package.json`](package.json), [`server.js`](server.js), [`server.rb`](server.rb) |
 | **3. Desenvolvimento Frontend** | **2,0 pts** | Interface moderna, responsiva, com foco na usabilidade, mobile-first e PWA ready. | Telas responsivas do Aluno e Curador, busca em tempo real, painel de correlações, controle de status, `manifest.json` e Service Worker. | [`public/index.html`](public/index.html), [`public/curator.html`](public/curator.html), [`public/css/style.css`](public/css/style.css) |
 | **4. Desenvolvimento Backend** | **2,0 pts** | API RESTful com rotas de consulta/atualização e banco relacional persistente com chaves e índices. | 10 endpoints REST (`/api/topics`, `/api/tracks`, `/api/progress`, etc.) e banco **SQLite3** populado com chaves estrangeiras. | [`database/schema.sql`](database/schema.sql), [`database/seed.sql`](database/seed.sql), [`database.sqlite`](database.sqlite) |
-| **5. Vídeo de Demonstração (Máx. 1 min)** | **1,0 pt** | Vídeo em `.mp4` de até 60s demonstrando o funcionamento dos módulos do aluno e curador. | Vídeo de 60s exatos gerado em `.mp4` com áudio narrado em português brasileiro, legendas estilo cinema e ambas as visões. | [`docs/demonstracao_poc_1min.mp4`](docs/demonstracao_poc_1min.mp4), [`docs/roteiro_video_1min.md`](docs/roteiro_video_1min.md) |
+| **5. Vídeo de Demonstração (Máx. 1 min)** | **1,0 pt** | Vídeo em `.mp4` de até 60s demonstrando o funcionamento dos módulos do aluno e curador. | Vídeo de 60s exatos gerado em `.mp4` com áudio narrado em português brasileiro, legendas estilo cinema e ambas as visões. | [demonstracao_poc_1min.mp4]
 | **6. Repositório GitHub** | **2,0 pts** | Repositório estruturado, histórico de commits legível, documentação clara de clone/run e créditos do grupo. | Repositório Git com `.gitignore`, branch `main`, documentação detalhada passo a passo e licença MIT. | [`README.md`](README.md), [`.gitignore`](.gitignore), [`LICENSE`](LICENSE) |
 | **TOTAL** | **10,0 pts** | **Atendimento Pleno a 100% dos Requisitos Acadêmicos** | — | — |
 
@@ -49,7 +49,7 @@
 
 O vídeo oficial de demonstração de **60 segundos** com **locução narrada em português (pt-BR)** e legendas foi gerado e salvo diretamente no repositório:
 
-- 📁 **Arquivo no Repositório:** [`docs/demonstracao_poc_1min.mp4`](docs/demonstracao_poc_1min.mp4) *(7.16 MB, compatível com QuickTime, Chrome, VLC e reprodutores padrão)*
+- 📁 **Arquivo no Repositório:** [demonstracao_poc_1min.mp4](docs/demonstracao_poc_1min.mp4) *(7.16 MB, compatível com QuickTime, Chrome, VLC e reprodutores padrão)*
 
 ---
 
