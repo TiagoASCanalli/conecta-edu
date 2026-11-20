@@ -136,10 +136,7 @@ conecta-edu/
 │       └── curator.js             # Lógica do painel de curadoria docente
 └── docs/
     ├── demonstracao_poc_1min.mp4  # Vídeo Oficial de Demonstração (60s)
-    ├── demonstracao_poc_1min.webm # Vídeo em formato WebM
-    ├── justificativa_poc.md       # Fundamentação técnica e pedagógica (Rubrica 1)
-    ├── roteiro_video_1min.md      # Roteiro segundo a segundo da gravação (Rubrica 5)
-    └── notebooklm_kit.md          # Kit de integração com Google NotebookLM
+ 
 ```
 
 ---
