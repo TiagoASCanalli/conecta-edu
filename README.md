@@ -50,10 +50,6 @@
 O vídeo oficial de demonstração de **60 segundos** com **locução narrada em português (pt-BR)** e legendas foi gerado e salvo diretamente no repositório:
 
 - 📁 **Arquivo no Repositório:** [`docs/demonstracao_poc_1min.mp4`](docs/demonstracao_poc_1min.mp4) *(7.16 MB, compatível com QuickTime, Chrome, VLC e reprodutores padrão)*
-- 📝 **Roteiro Segundo a Segundo:** [`docs/roteiro_video_1min.md`](docs/roteiro_video_1min.md)
-- 🎙️ **Áudio da Locução Isolado:** [`public/audio/locucao_poc_60s.m4a`](public/audio/locucao_poc_60s.m4a) e [`public/audio/locucao_poc_60s.wav`](public/audio/locucao_poc_60s.wav)
-- 🤖 **Kit para Google NotebookLM:** [`docs/notebooklm_kit.md`](docs/notebooklm_kit.md)
-- ⚙️ **Gravador Automático Integrado:** Acesse no navegador em `http://localhost:3000/recorder.html` para re-gravar a qualquer momento.
 
 ---
 
