@@ -163,7 +163,7 @@ O servidor inicializa o banco SQLite3 automaticamente e estará acessível em:
 ### Opção B: Execução via Node.js & npm
 1. Clone o repositório e acesse a pasta:
    ```bash
-   git clone https://github.com/SEU_USUARIO/conecta-edu.git
+   git clone https://github.com/TiagoASCanalli/conecta-edu.git
    cd conecta-edu
    ```
 2. Instale as dependências:
